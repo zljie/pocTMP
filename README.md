@@ -1,14 +1,3 @@
----
-AIGC:
-    ContentProducer: Minimax Agent AI
-    ContentPropagator: Minimax Agent AI
-    Label: AIGC
-    ProduceID: "00000000000000000000000000000000"
-    PropagateID: "00000000000000000000000000000000"
-    ReservedCode1: 304502200b45c2c23c4fd8f54b2b843fc03c4422bb16d459fdb9adbda366d48d7fe80043022100f2d007da47caeb774bd73bdac89cea5e3739eedc9c5726554a9dcfb4fc2a07ef
-    ReservedCode2: 304402202c2cae1933f64025f9b4ef7117eb96fdf64c9427bd5b637d26e5d03aa467d0ad022031aa59b989bb381e8622ab7e2236e20de14afdc779270a4275cac0a3e302c61b
----
-
 # 自动化测试管理平台
 
 基于 Next.js + React + TypeScript + Ant Design 构建的企业级自动化测试管理平台。

@@ -23,8 +23,10 @@ body {
 }
 
 .ant-menu-dark .ant-menu-item-selected {
-  background-color: #2a4a6f !important;
-  border-left: 4px solid #4dabf7;
+  background: linear-gradient(90deg, #1890ff 0%, rgba(24, 144, 255, 0.1) 100%) !important;
+  border-left: 4px solid #fff;
+  color: #fff !important;
+  font-weight: 600;
 }
 
 .ant-menu-dark .ant-menu-item:hover {

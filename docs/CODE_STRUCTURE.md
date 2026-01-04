@@ -6,7 +6,7 @@
 - 保持与现有技术栈和约定一致，降低维护成本
 
 ## 技术栈与约定
-- 框架: Next.js 15（App Router）
+- 框架: Next.js 16（App Router）
 - 语言: TypeScript
 - UI: Ant Design 5，结合 @ant-design/nextjs-registry
 - 样式: TailwindCSS 4（PostCSS 插件）
@@ -94,12 +94,4 @@
 - 接入后端：
   - `.env.local` 配置 `NEXT_PUBLIC_API_URL=http://your-api`
   - 页面替换 `src/mock/data.ts` 为 `src/lib/api.ts` 的方法
-
-## 参考文件
-- 配置: [`next.config.js`](file:///Users/johnson_mac/code/test-management-platform/next.config.js)、[`tsconfig.json`](file:///Users/johnson_mac/code/test-management-platform/tsconfig.json)
-- 布局: [`layout.tsx`](file:///Users/johnson_mac/code/test-management-platform/src/app/layout.tsx)、[`MainLayout.tsx`](file:///Users/johnson_mac/code/test-management-platform/src/components/layout/MainLayout.tsx)
-- 页面示例: [`page.tsx`](file:///Users/johnson_mac/code/test-management-platform/src/app/page.tsx)
-- 类型: [`src/types/index.ts`](file:///Users/johnson_mac/code/test-management-platform/src/types/index.ts)
-- 接口封装: [`src/lib/api.ts`](file:///Users/johnson_mac/code/test-management-platform/src/lib/api.ts)
-- 演示数据: [`src/mock/data.ts`](file:///Users/johnson_mac/code/test-management-platform/src/mock/data.ts)
 
