@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Ant Design 侧边栏样式覆盖 */
+.ant-menu-dark {
+  background: #1a3a5f !important;
+}
+
+.ant-menu-dark .ant-menu-item {
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background-color: #2a4a6f !important;
+  border-left: 4px solid #4dabf7;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background-color: #2a4a6f !important;
+}
+
+/* 表格样式优化 */
+.ant-table-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+  background-color: #fafafa !important;
+  font-weight: 600;
+}
+
+/* 分页样式 */
+.ant-pagination {
+  padding: 16px;
+  background: white;
+  margin-top: 0 !important;
+}
+
+/* 卡片样式 */
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    position: fixed !important;
+    height: 100vh;
+    z-index: 100;
+  }
+}
