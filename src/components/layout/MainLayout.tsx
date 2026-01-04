@@ -46,6 +46,30 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // 计算当前选中的菜单 Key
+  // 1. 处理 trailingSlash (例如 /test-cases/ 应匹配 /test-cases)
+  // 2. 支持子路由高亮 (例如 /test-cases/add 应匹配 /test-cases)
+  const getSelectedKey = () => {
+    // 移除末尾斜杠（除了根路径）
+    const normalizedPath = pathname !== '/' && pathname.endsWith('/') 
+      ? pathname.slice(0, -1) 
+      : pathname;
+
+    // 优先精确匹配
+    if (menuItems.some(item => item.key === normalizedPath)) {
+      return normalizedPath;
+    }
+
+    // 其次前缀匹配（排除首页 '/'，防止所有路径都匹配首页）
+    const prefixMatch = menuItems.find(item => 
+      item.key !== '/' && normalizedPath.startsWith(item.key)
+    );
+    
+    return prefixMatch ? prefixMatch.key : '/';
+  };
+
+  const selectedKey = getSelectedKey();
+
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -88,7 +112,7 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[pathname]}
+          selectedKeys={[selectedKey]}
           items={menuItems}
           onClick={({ key }) => router.push(key)}
           style={{
