@@ -23,6 +23,24 @@ import {
   PlusOutlined,
   DeleteOutlined,
   EditOutlined,
+  HomeOutlined,
+  SettingOutlined,
+  UserOutlined,
+  TeamOutlined,
+  UnorderedListOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  BarChartOutlined,
+  GlobalOutlined,
+  ApiOutlined,
+  DashboardOutlined,
+  CheckSquareOutlined,
+  BellOutlined,
+  ToolOutlined,
+  PartitionOutlined,
+  IdcardOutlined,
+  BookOutlined,
+  FileOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import MainLayout from '@/components/layout/MainLayout';
@@ -120,6 +138,32 @@ const initialData: MenuType[] = [
   },
 ];
 
+const iconOptions = [
+  { value: 'home', label: '首页', icon: <HomeOutlined /> },
+  { value: 'setting', label: '设置', icon: <SettingOutlined /> },
+  { value: 'user', label: '用户', icon: <UserOutlined /> },
+  { value: 'team', label: '角色/团队', icon: <TeamOutlined /> },
+  { value: 'unordered-list', label: '列表/菜单', icon: <UnorderedListOutlined /> },
+  { value: 'file-text', label: '文档', icon: <FileTextOutlined /> },
+  { value: 'calendar', label: '日历', icon: <CalendarOutlined /> },
+  { value: 'bar-chart', label: '报表', icon: <BarChartOutlined /> },
+  { value: 'global', label: '全局', icon: <GlobalOutlined /> },
+  { value: 'api', label: '接口', icon: <ApiOutlined /> },
+  { value: 'dashboard', label: '仪表盘', icon: <DashboardOutlined /> },
+  { value: 'check-square', label: '任务', icon: <CheckSquareOutlined /> },
+  { value: 'bell', label: '通知', icon: <BellOutlined /> },
+  { value: 'tool', label: '工具', icon: <ToolOutlined /> },
+  { value: 'partition', label: '部门', icon: <PartitionOutlined /> },
+  { value: 'idcard', label: '岗位', icon: <IdcardOutlined /> },
+  { value: 'book', label: '字典', icon: <BookOutlined /> },
+  { value: 'file', label: '文件', icon: <FileOutlined /> },
+];
+
+const iconMap: Record<string, React.ReactNode> = iconOptions.reduce<Record<string, React.ReactNode>>((acc, item) => {
+  acc[item.value] = item.icon;
+  return acc;
+}, {});
+
 export default function MenuPage() {
   const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
@@ -194,6 +238,11 @@ export default function MenuPage() {
       key: 'icon',
       width: 80,
       align: 'center',
+      render: (icon: string) => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+          {iconMap[icon] || '-'}
+        </span>
+      ),
     },
     {
       title: '排序',
@@ -261,7 +310,7 @@ export default function MenuPage() {
   return (
     <MainLayout title="菜单管理">
       <div className="p-4">
-        <Card bordered={false} className="mb-4" bodyStyle={{ padding: '15px 24px 0' }}>
+        <Card bordered={false} style={{ marginBottom: 12 }} bodyStyle={{ padding: '16px 24px' }}>
           <Form form={searchForm} layout="inline">
             <Form.Item name="name" label="菜单名称">
               <Input placeholder="请输入菜单名称" allowClear style={{ width: 200 }} />
@@ -285,8 +334,8 @@ export default function MenuPage() {
           </Form>
         </Card>
 
-        <Card bordered={false} bodyStyle={{ padding: '0 24px 24px' }}>
-          <div className="mb-4 pt-4 flex justify-between items-center">
+        <Card bordered={false} bodyStyle={{ padding: '16px 24px 24px' }}>
+          <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
             <Space>
               <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAdd()}>
                 新增
@@ -338,7 +387,23 @@ export default function MenuPage() {
             </Form.Item>
 
             <Form.Item name="icon" label="菜单图标">
-              <Input placeholder="点击选择图标" />
+              <Select
+                placeholder="请选择图标"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                options={iconOptions.map((item) => ({
+                  value: item.value,
+                  label: (
+                    <Space size={8}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 16 }}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </Space>
+                  ),
+                }))}
+              />
             </Form.Item>
 
             <Form.Item
