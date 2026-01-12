@@ -258,14 +258,14 @@ export default function MenuPage() {
   ];
 
   return (
-    <div className="p-6">
-      <Card bordered={false} className="mb-4">
+    <div className="p-4">
+      <Card bordered={false} className="mb-4" bodyStyle={{ padding: '15px 24px 0' }}>
         <Form form={searchForm} layout="inline">
           <Form.Item name="name" label="菜单名称">
-            <Input placeholder="请输入菜单名称" allowClear />
+            <Input placeholder="请输入菜单名称" allowClear style={{ width: 200 }} />
           </Form.Item>
           <Form.Item name="status" label="状态">
-            <Select placeholder="菜单状态" allowClear style={{ width: 120 }}>
+            <Select placeholder="菜单状态" allowClear style={{ width: 150 }}>
               <Select.Option value="active">正常</Select.Option>
               <Select.Option value="inactive">停用</Select.Option>
             </Select>
@@ -283,8 +283,8 @@ export default function MenuPage() {
         </Form>
       </Card>
 
-      <Card bordered={false}>
-        <div className="mb-4">
+      <Card bordered={false} bodyStyle={{ padding: '0 24px 24px' }}>
+        <div className="mb-4 pt-4 flex justify-between items-center">
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAdd()}>
               新增
@@ -292,6 +292,10 @@ export default function MenuPage() {
             <Button danger icon={<DeleteOutlined />}>
               级联删除
             </Button>
+          </Space>
+          <Space>
+            <Button type="text" icon={<SearchOutlined />} />
+            <Button type="text" icon={<ReloadOutlined />} onClick={() => setLoading(true)} />
           </Space>
         </div>
 
@@ -301,6 +305,7 @@ export default function MenuPage() {
           rowKey="id"
           pagination={false}
           loading={loading}
+          size="middle"
         />
       </Card>
 

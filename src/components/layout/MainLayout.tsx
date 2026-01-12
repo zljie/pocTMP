@@ -26,8 +26,13 @@ import {
   ToolOutlined,
   BellOutlined,
   FileOutlined,
+  SearchOutlined,
+  ExpandOutlined,
+  TranslationOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
+import { Breadcrumb, Input, Space, Badge, Avatar } from 'antd';
+import TagsView from './TagsView';
 
 const { Sider, Header, Content } = Layout;
 
@@ -162,6 +167,46 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
     return () => clearInterval(timer);
   }, []);
 
+  // 生成面包屑项
+  const getBreadcrumbItems = () => {
+    const pathSnippets = pathname.split('/').filter((i) => i);
+    const items = [
+      {
+        title: <HomeOutlined />,
+        href: '/',
+      },
+    ];
+
+    let currentPath = '';
+    pathSnippets.forEach((snippet) => {
+      currentPath += `/${snippet}`;
+      // 这里应该根据 currentPath 查找菜单名称，简单起见直接用 snippet
+      // 实际应递归查找 menuItems
+      const findLabel = (items: MenuItem[], path: string): string | undefined => {
+        for (const item of items) {
+           if (item.key === path) return item.label;
+           if (item.children) {
+             const label = findLabel(item.children, path);
+             if (label) return label;
+           }
+        }
+      };
+      
+      const label = findLabel(menuItems, currentPath) || snippet;
+      items.push({
+        title: <span>{label}</span>,
+        href: currentPath,
+      });
+    });
+    
+    // 如果只有首页，不重复显示
+    if (items.length > 1 && items[1].href === '/') {
+        items.splice(1, 1);
+    }
+    
+    return items;
+  };
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider
@@ -189,7 +234,7 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
           }}
         >
           <RobotOutlined style={{ color: '#4dabf7', fontSize: '24px' }} />
-          {!collapsed && <span>自动化测试管理平台</span>}
+          {!collapsed && <span>智能测试平台</span>}
         </div>
         <Menu
           theme="dark"
@@ -209,12 +254,14 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
       <Layout>
         <Header
           style={{
-            padding: '0 25px',
+            padding: '0 16px',
             background: 'white',
-            boxShadow: '0 2px 5px rgba(0, 0, 0, 0.05)',
+            boxShadow: '0 1px 4px rgba(0, 21, 41, 0.08)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            height: 50,
+            zIndex: 1,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -222,21 +269,33 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
               style: { fontSize: '18px', cursor: 'pointer' },
               onClick: () => setCollapsed(!collapsed),
             })}
-            <span style={{ fontSize: '20px', fontWeight: 600, color: '#1a3a5f' }}>
-              {title}
-            </span>
+            <Breadcrumb items={getBreadcrumbItems()} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666' }}>
-            <UserOutlined />
-            <span>管理员</span>
-            <span>{currentTime}</span>
-          </div>
+          <Space size="large">
+            <Input 
+               placeholder="选择租户" 
+               suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
+               style={{ width: 200, borderRadius: 4 }}
+               bordered={false}
+            />
+            <SearchOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
+            <ExpandOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
+            <TranslationOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
+            <Badge count={5} size="small">
+                <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
+            </Badge>
+            <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#f56a00' }} size="small" />
+          </Space>
         </Header>
+        
+        <TagsView />
+
         <Content
           style={{
-            padding: '20px',
-            background: '#f5f7fa',
+            padding: '16px',
+            background: '#f0f2f5',
             overflow: 'auto',
+            height: 'calc(100vh - 90px)', // Header 50 + TagsView 40 = 90
           }}
         >
           {children}
