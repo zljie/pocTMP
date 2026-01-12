@@ -25,6 +25,7 @@ import {
   EditOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import MainLayout from '@/components/layout/MainLayout';
 
 // 菜单类型定义
 interface MenuType {
@@ -258,133 +259,135 @@ export default function MenuPage() {
   ];
 
   return (
-    <div className="p-4">
-      <Card bordered={false} className="mb-4" bodyStyle={{ padding: '15px 24px 0' }}>
-        <Form form={searchForm} layout="inline">
-          <Form.Item name="name" label="菜单名称">
-            <Input placeholder="请输入菜单名称" allowClear style={{ width: 200 }} />
-          </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Select placeholder="菜单状态" allowClear style={{ width: 150 }}>
-              <Select.Option value="active">正常</Select.Option>
-              <Select.Option value="inactive">停用</Select.Option>
-            </Select>
-          </Form.Item>
-          <Form.Item>
+    <MainLayout title="菜单管理">
+      <div className="p-4">
+        <Card bordered={false} className="mb-4" bodyStyle={{ padding: '15px 24px 0' }}>
+          <Form form={searchForm} layout="inline">
+            <Form.Item name="name" label="菜单名称">
+              <Input placeholder="请输入菜单名称" allowClear style={{ width: 200 }} />
+            </Form.Item>
+            <Form.Item name="status" label="状态">
+              <Select placeholder="菜单状态" allowClear style={{ width: 150 }}>
+                <Select.Option value="active">正常</Select.Option>
+                <Select.Option value="inactive">停用</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item>
+              <Space>
+                <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+                  搜索
+                </Button>
+                <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                  重置
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Card>
+
+        <Card bordered={false} bodyStyle={{ padding: '0 24px 24px' }}>
+          <div className="mb-4 pt-4 flex justify-between items-center">
             <Space>
-              <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-                搜索
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAdd()}>
+                新增
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={handleReset}>
-                重置
+              <Button danger icon={<DeleteOutlined />}>
+                级联删除
               </Button>
             </Space>
-          </Form.Item>
-        </Form>
-      </Card>
+            <Space>
+              <Button type="text" icon={<SearchOutlined />} />
+              <Button type="text" icon={<ReloadOutlined />} onClick={() => setLoading(true)} />
+            </Space>
+          </div>
 
-      <Card bordered={false} bodyStyle={{ padding: '0 24px 24px' }}>
-        <div className="mb-4 pt-4 flex justify-between items-center">
-          <Space>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAdd()}>
-              新增
-            </Button>
-            <Button danger icon={<DeleteOutlined />}>
-              级联删除
-            </Button>
-          </Space>
-          <Space>
-            <Button type="text" icon={<SearchOutlined />} />
-            <Button type="text" icon={<ReloadOutlined />} onClick={() => setLoading(true)} />
-          </Space>
-        </div>
+          <Table
+            columns={columns}
+            dataSource={data}
+            rowKey="id"
+            pagination={false}
+            loading={loading}
+            size="middle"
+          />
+        </Card>
 
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          pagination={false}
-          loading={loading}
-          size="middle"
-        />
-      </Card>
+        <Modal
+          title={modalTitle}
+          open={isModalOpen}
+          onOk={handleOk}
+          onCancel={() => setIsModalOpen(false)}
+          width={600}
+        >
+          <Form form={form} layout="horizontal" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }}>
+            <Form.Item name="parentId" label="上级菜单">
+              <TreeSelect
+                treeData={data}
+                fieldNames={{ label: 'name', value: 'id', children: 'children' }}
+                placeholder="选择上级菜单"
+                allowClear
+                treeDefaultExpandAll
+              />
+            </Form.Item>
 
-      <Modal
-        title={modalTitle}
-        open={isModalOpen}
-        onOk={handleOk}
-        onCancel={() => setIsModalOpen(false)}
-        width={600}
-      >
-        <Form form={form} layout="horizontal" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }}>
-          <Form.Item name="parentId" label="上级菜单">
-            <TreeSelect
-              treeData={data}
-              fieldNames={{ label: 'name', value: 'id', children: 'children' }}
-              placeholder="选择上级菜单"
-              allowClear
-              treeDefaultExpandAll
-            />
-          </Form.Item>
+            <Form.Item name="type" label="菜单类型" initialValue="menu">
+              <Radio.Group>
+                <Radio value="dir">目录</Radio>
+                <Radio value="menu">菜单</Radio>
+                <Radio value="button">按钮</Radio>
+              </Radio.Group>
+            </Form.Item>
 
-          <Form.Item name="type" label="菜单类型" initialValue="menu">
-            <Radio.Group>
-              <Radio value="dir">目录</Radio>
-              <Radio value="menu">菜单</Radio>
-              <Radio value="button">按钮</Radio>
-            </Radio.Group>
-          </Form.Item>
+            <Form.Item name="icon" label="菜单图标">
+              <Input placeholder="点击选择图标" />
+            </Form.Item>
 
-          <Form.Item name="icon" label="菜单图标">
-            <Input placeholder="点击选择图标" />
-          </Form.Item>
+            <Form.Item
+              name="name"
+              label="菜单名称"
+              rules={[{ required: true, message: '请输入菜单名称' }]}
+            >
+              <Input placeholder="请输入菜单名称" />
+            </Form.Item>
 
-          <Form.Item
-            name="name"
-            label="菜单名称"
-            rules={[{ required: true, message: '请输入菜单名称' }]}
-          >
-            <Input placeholder="请输入菜单名称" />
-          </Form.Item>
+            <Form.Item name="order" label="显示排序" initialValue={1}>
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
 
-          <Form.Item name="order" label="显示排序" initialValue={1}>
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
+            <Form.Item name="isLink" label="是否外链" initialValue={false}>
+              <Radio.Group>
+                <Radio value={true}>是</Radio>
+                <Radio value={false}>否</Radio>
+              </Radio.Group>
+            </Form.Item>
 
-          <Form.Item name="isLink" label="是否外链" initialValue={false}>
-            <Radio.Group>
-              <Radio value={true}>是</Radio>
-              <Radio value={false}>否</Radio>
-            </Radio.Group>
-          </Form.Item>
+            <Form.Item name="path" label="路由地址">
+              <Input placeholder="请输入路由地址" />
+            </Form.Item>
+            
+            <Form.Item name="component" label="组件路径">
+               <Input placeholder="请输入组件路径" />
+            </Form.Item>
 
-          <Form.Item name="path" label="路由地址">
-            <Input placeholder="请输入路由地址" />
-          </Form.Item>
-          
-          <Form.Item name="component" label="组件路径">
-             <Input placeholder="请输入组件路径" />
-          </Form.Item>
+            <Form.Item name="permission" label="权限标识">
+              <Input placeholder="请输入权限标识" />
+            </Form.Item>
 
-          <Form.Item name="permission" label="权限标识">
-            <Input placeholder="请输入权限标识" />
-          </Form.Item>
+            <Form.Item name="visible" label="显示状态" initialValue={true}>
+              <Radio.Group>
+                <Radio value={true}>显示</Radio>
+                <Radio value={false}>隐藏</Radio>
+              </Radio.Group>
+            </Form.Item>
 
-          <Form.Item name="visible" label="显示状态" initialValue={true}>
-            <Radio.Group>
-              <Radio value={true}>显示</Radio>
-              <Radio value={false}>隐藏</Radio>
-            </Radio.Group>
-          </Form.Item>
-
-          <Form.Item name="status" label="菜单状态" initialValue="active">
-            <Radio.Group>
-              <Radio value="active">正常</Radio>
-              <Radio value="inactive">停用</Radio>
-            </Radio.Group>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+            <Form.Item name="status" label="菜单状态" initialValue="active">
+              <Radio.Group>
+                <Radio value="active">正常</Radio>
+                <Radio value="inactive">停用</Radio>
+              </Radio.Group>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </MainLayout>
   );
 }
