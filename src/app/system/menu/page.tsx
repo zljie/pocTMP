@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import dayjs from 'dayjs';
 import {
   Card,
   Table,
@@ -58,6 +59,8 @@ interface MenuType {
   type: 'dir' | 'menu' | 'button';
   status: 'active' | 'inactive';
   createTime: string;
+  updatedTime: string;
+  updatedBy: string;
   children?: MenuType[];
   parentId?: string;
   visible?: boolean;
@@ -78,6 +81,8 @@ const initialData: MenuType[] = [
     type: 'dir',
     status: 'active',
     createTime: '2025-08-18 09:57:50',
+    updatedTime: '2025-08-18 09:57:50',
+    updatedBy: '管理员',
     children: [
       {
         id: '2',
@@ -91,6 +96,8 @@ const initialData: MenuType[] = [
         type: 'menu',
         status: 'active',
         createTime: '2025-08-18 09:57:50',
+        updatedTime: '2025-08-18 09:57:50',
+        updatedBy: '管理员',
         parentId: '1',
       },
       {
@@ -105,6 +112,8 @@ const initialData: MenuType[] = [
         type: 'menu',
         status: 'active',
         createTime: '2025-08-18 09:57:50',
+        updatedTime: '2025-08-18 09:57:50',
+        updatedBy: '管理员',
         parentId: '1',
       },
       {
@@ -119,6 +128,8 @@ const initialData: MenuType[] = [
         type: 'menu',
         status: 'active',
         createTime: '2025-08-18 09:57:50',
+        updatedTime: '2025-08-18 09:57:50',
+        updatedBy: '管理员',
         parentId: '1',
       },
     ],
@@ -135,6 +146,8 @@ const initialData: MenuType[] = [
     type: 'dir',
     status: 'active',
     createTime: '2025-08-18 09:57:50',
+    updatedTime: '2025-08-18 09:57:50',
+    updatedBy: '管理员',
   },
 ];
 
@@ -172,6 +185,43 @@ export default function MenuPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('新增菜单');
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const nowText = () => dayjs().format('YYYY-MM-DD HH:mm:ss');
+
+  const getNextId = (items: MenuType[]) => {
+    let maxId = 0;
+    const walk = (list: MenuType[]) => {
+      list.forEach((item) => {
+        maxId = Math.max(maxId, Number(item.id) || 0);
+        if (item.children?.length) walk(item.children);
+      });
+    };
+    walk(items);
+    return String(maxId + 1);
+  };
+
+  const updateNodeById = (items: MenuType[], id: string, updater: (node: MenuType) => MenuType): MenuType[] => {
+    return items.map((item) => {
+      if (item.id === id) return updater(item);
+      if (item.children?.length) {
+        return { ...item, children: updateNodeById(item.children, id, updater) };
+      }
+      return item;
+    });
+  };
+
+  const addNode = (items: MenuType[], node: MenuType, parentId?: string): MenuType[] => {
+    if (!parentId) return [...items, node];
+    return items.map((item) => {
+      if (item.id === parentId) {
+        return { ...item, children: [...(item.children || []), node] };
+      }
+      if (item.children?.length) {
+        return { ...item, children: addNode(item.children, node, parentId) };
+      }
+      return item;
+    });
+  };
 
   // 搜索处理
   const handleSearch = () => {
@@ -215,9 +265,46 @@ export default function MenuPage() {
 
   const handleOk = () => {
     form.validateFields().then((values) => {
-      console.log('Form values:', values);
       setLoading(true);
       setTimeout(() => {
+        const updatedTime = nowText();
+        const updatedBy = '管理员';
+        const parentId: string | undefined = values.parentId || undefined;
+
+        if (editingId) {
+          setData((prev) =>
+            updateNodeById(prev, editingId, (node) => ({
+              ...node,
+              ...values,
+              parentId,
+              updatedTime,
+              updatedBy,
+            }))
+          );
+        } else {
+          const id = getNextId(data);
+          const createTime = updatedTime;
+          const newNode: MenuType = {
+            id,
+            key: id,
+            name: values.name,
+            icon: values.icon || 'unordered-list',
+            order: values.order ?? 1,
+            permission: values.permission || '',
+            path: values.path || '',
+            component: values.component || '',
+            type: values.type || 'menu',
+            status: values.status || 'active',
+            createTime,
+            updatedTime,
+            updatedBy,
+            parentId,
+            visible: values.visible ?? true,
+            isLink: values.isLink ?? false,
+          };
+          setData((prev) => addNode(prev, newNode, parentId));
+        }
+
         setLoading(false);
         setIsModalOpen(false);
         message.success(`${modalTitle}成功（模拟）`);
@@ -279,6 +366,18 @@ export default function MenuPage() {
       dataIndex: 'createTime',
       key: 'createTime',
       width: 180,
+    },
+    {
+      title: '最后更新时间',
+      dataIndex: 'updatedTime',
+      key: 'updatedTime',
+      width: 180,
+    },
+    {
+      title: '最后更新人',
+      dataIndex: 'updatedBy',
+      key: 'updatedBy',
+      width: 120,
     },
     {
       title: '操作',
