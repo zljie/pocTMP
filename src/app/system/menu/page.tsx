@@ -55,7 +55,7 @@ interface MenuType {
   order: number;
   permission: string;
   path: string;
-  component: string;
+  router: string;
   type: 'dir' | 'menu' | 'button';
   status: 'active' | 'inactive';
   createTime: string;
@@ -77,7 +77,7 @@ const initialData: MenuType[] = [
     order: 1,
     permission: '',
     path: '/system',
-    component: 'Layout',
+    router: 'Layout',
     type: 'dir',
     status: 'active',
     createTime: '2025-08-18 09:57:50',
@@ -92,7 +92,7 @@ const initialData: MenuType[] = [
         order: 1,
         permission: 'system:user:list',
         path: 'user',
-        component: 'system/user/index',
+        router: 'system/user/index',    
         type: 'menu',
         status: 'active',
         createTime: '2025-08-18 09:57:50',
@@ -108,7 +108,7 @@ const initialData: MenuType[] = [
         order: 2,
         permission: 'system:role:list',
         path: 'role',
-        component: 'system/role/index',
+        router: 'system/role/index',
         type: 'menu',
         status: 'active',
         createTime: '2025-08-18 09:57:50',
@@ -124,7 +124,7 @@ const initialData: MenuType[] = [
         order: 3,
         permission: 'system:menu:list',
         path: 'menu',
-        component: 'system/menu/index',
+        router: 'system/menu/index',
         type: 'menu',
         status: 'active',
         createTime: '2025-08-18 09:57:50',
@@ -142,7 +142,7 @@ const initialData: MenuType[] = [
     order: 2,
     permission: '',
     path: '/test-cases',
-    component: 'Layout',
+    router: 'Layout',
     type: 'dir',
     status: 'active',
     createTime: '2025-08-18 09:57:50',
@@ -182,6 +182,7 @@ export default function MenuPage() {
   const [searchForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<MenuType[]>(initialData);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('新增菜单');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -257,7 +258,7 @@ export default function MenuPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = () => {
     // 递归删除逻辑略复杂，这里仅演示删除顶层或叶子节点
     // 实际项目中应调用后端API
     message.success('删除成功（模拟）');
@@ -292,7 +293,7 @@ export default function MenuPage() {
             order: values.order ?? 1,
             permission: values.permission || '',
             path: values.path || '',
-            component: values.component || '',
+            router: values.router || '',
             type: values.type || 'menu',
             status: values.status || 'active',
             createTime,
@@ -345,9 +346,9 @@ export default function MenuPage() {
       width: 150,
     },
     {
-      title: '组件路径',
-      dataIndex: 'component',
-      key: 'component',
+      title: '路由地址',
+      dataIndex: 'router',
+      key: 'router',
       width: 200,
     },
     {
@@ -397,7 +398,7 @@ export default function MenuPage() {
           />
           <Popconfirm
             title="确定删除该菜单吗？"
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => handleDelete()}
           >
             <Button type="link" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -455,6 +456,10 @@ export default function MenuPage() {
             rowKey="id"
             pagination={false}
             loading={loading}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (nextSelectedRowKeys) => setSelectedRowKeys(nextSelectedRowKeys),
+            }}
             size="middle"
           />
         </Card>
@@ -528,8 +533,8 @@ export default function MenuPage() {
               <Input placeholder="请输入路由地址" />
             </Form.Item>
             
-            <Form.Item name="component" label="组件路径">
-               <Input placeholder="请输入组件路径" />
+            <Form.Item name="router" label="路由地址">
+               <Input placeholder="请输入路由地址" />
             </Form.Item>
 
             <Form.Item name="permission" label="权限标识">

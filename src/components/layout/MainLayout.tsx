@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Layout, Menu } from 'antd';
 import {
   HomeOutlined,
@@ -54,7 +54,7 @@ const menuItems: MenuItem[] = [
       { key: '/system/user', icon: <UserOutlined />, label: '用户管理' },
       { key: '/system/role', icon: <TeamOutlined />, label: '角色管理' },
       { key: '/system/menu', icon: <UnorderedListOutlined />, label: '菜单管理' },
-      { key: '/system/dept', icon: <PartitionOutlined />, label: '部门管理' },
+      { key: '/system/dept', icon: <PartitionOutlined />, label: '产品管理' },
       { key: '/system/post', icon: <IdcardOutlined />, label: '岗位管理' },
       { key: '/system/dict', icon: <BookOutlined />, label: '字典管理' },
       { key: '/system/config', icon: <ToolOutlined />, label: '参数设置' },
@@ -81,9 +81,12 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, title }: MainLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [currentTime, setCurrentTime] = useState('--:--');
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    document.title = `${title} - 智能测试平台`;
+  }, [title]);
 
   // 计算当前选中的菜单 Key
   // 1. 处理 trailingSlash (例如 /test-cases/ 应匹配 /test-cases)
@@ -140,32 +143,23 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
 
   const selectedKey = getSelectedKey();
   
-  // 维护 openKeys 状态
-  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const getRootSubmenuKey = (key: string) => {
+    const parts = key.split('/').filter(Boolean);
+    if (parts.length > 1) return `/${parts[0]}`;
+    return undefined;
+  };
 
-  // 当 selectedKey 变化时，自动展开对应的父菜单
-  useEffect(() => {
-    const parts = selectedKey.split('/').filter(Boolean);
-    if (parts.length > 1) {
-      // 假设第一级目录就是根路径下的一级，如 /system
-      const rootSubmenuKey = `/${parts[0]}`;
-      setOpenKeys((prev) => {
-        // 如果已经展开了，就不变；否则添加
-        if (prev.includes(rootSubmenuKey)) return prev;
-        return [...prev, rootSubmenuKey];
-      });
-    }
-  }, [selectedKey]);
+  const [openKeys, setOpenKeys] = useState<string[]>(() => {
+    const root = getRootSubmenuKey(selectedKey);
+    return root ? [root] : [];
+  });
 
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
-    };
-    updateTime();
-    const timer = setInterval(updateTime, 60000);
-    return () => clearInterval(timer);
-  }, []);
+  const computedOpenKeys = useMemo(() => {
+    const root = getRootSubmenuKey(selectedKey);
+    if (!root) return openKeys;
+    if (openKeys.includes(root)) return openKeys;
+    return [...openKeys, root];
+  }, [openKeys, selectedKey]);
 
   // 生成面包屑项
   const getBreadcrumbItems = () => {
@@ -240,7 +234,7 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
-          openKeys={openKeys}
+          openKeys={computedOpenKeys}
           onOpenChange={(keys) => setOpenKeys(keys)}
           items={menuItems}
           onClick={({ key }) => router.push(key)}

@@ -39,29 +39,38 @@ export async function request<T>(
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return (await response.json()) as ApiResponse<T>;
   } catch (error) {
     console.error('API Request Failed:', error);
     throw error;
   }
 }
 
+const toSearchParams = (params: Record<string, string | number | boolean | null | undefined>) => {
+  const entries: Record<string, string> = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    entries[key] = String(value);
+  });
+  return new URLSearchParams(entries);
+};
+
 // 测试用例API
 export const testCaseApi = {
   getList: (params: Record<string, string | number>) =>
-    request<ListResponse<any>>(`/api/test-cases?${new URLSearchParams(params as Record<string, string>)}`),
+    request<ListResponse<unknown>>(`/api/test-cases?${toSearchParams(params)}`),
   
   getById: (id: number) =>
-    request<any>(`/api/test-cases/${id}`),
+    request<unknown>(`/api/test-cases/${id}`),
   
-  create: (data: any) =>
-    request<any>('/api/test-cases', {
+  create: (data: unknown) =>
+    request<unknown>('/api/test-cases', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   
-  update: (id: number, data: any) =>
-    request<any>(`/api/test-cases/${id}`, {
+  update: (id: number, data: unknown) =>
+    request<unknown>(`/api/test-cases/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -81,16 +90,16 @@ export const testCaseApi = {
 // 测试需求API
 export const testRequirementApi = {
   getList: (params: Record<string, string | number>) =>
-    request<ListResponse<any>>(`/api/test-requirements?${new URLSearchParams(params as Record<string, string>)}`),
+    request<ListResponse<unknown>>(`/api/test-requirements?${toSearchParams(params)}`),
   
-  create: (data: any) =>
-    request<any>('/api/test-requirements', {
+  create: (data: unknown) =>
+    request<unknown>('/api/test-requirements', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   
-  update: (id: number, data: any) =>
-    request<any>(`/api/test-requirements/${id}`, {
+  update: (id: number, data: unknown) =>
+    request<unknown>(`/api/test-requirements/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -104,16 +113,16 @@ export const testRequirementApi = {
 // 测试计划API
 export const testPlanApi = {
   getList: (params: Record<string, string | number>) =>
-    request<ListResponse<any>>(`/api/test-plans?${new URLSearchParams(params as Record<string, string>)}`),
+    request<ListResponse<unknown>>(`/api/test-plans?${toSearchParams(params)}`),
   
-  create: (data: any) =>
-    request<any>('/api/test-plans', {
+  create: (data: unknown) =>
+    request<unknown>('/api/test-plans', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   
-  update: (id: number, data: any) =>
-    request<any>(`/api/test-plans/${id}`, {
+  update: (id: number, data: unknown) =>
+    request<unknown>(`/api/test-plans/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -124,7 +133,7 @@ export const testPlanApi = {
     }),
   
   updateStatus: (id: number, status: string) =>
-    request<any>(`/api/test-plans/${id}/status`, {
+    request<unknown>(`/api/test-plans/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     }),

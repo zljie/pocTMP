@@ -1,16 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, Row, Col, Statistic, Table, Progress, Tag } from 'antd';
 import {
   FileTextOutlined,
   UnorderedListOutlined,
-  CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   SyncOutlined,
   RiseOutlined,
-  BugOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { mockTestCases, mockTestRequirements, mockTestPlans } from '@/mock/data';
@@ -19,12 +17,6 @@ import dynamic from 'next/dynamic';
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
 export default function HomePage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const stats = {
     totalCases: mockTestCases.length,
     totalRequirements: mockTestRequirements.length,
@@ -140,12 +132,12 @@ export default function HomePage() {
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={16}>
           <Card title="测试执行趋势" styles={{ body: { padding: '12px 24px' } }}>
-            {mounted && <ReactECharts option={trendOption} style={{ height: 280 }} />}
+            <ReactECharts option={trendOption} style={{ height: 280 }} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
           <Card title="用例模块分布" styles={{ body: { padding: '12px 24px' } }}>
-            {mounted && <ReactECharts option={moduleOption} style={{ height: 280 }} />}
+            <ReactECharts option={moduleOption} style={{ height: 280 }} />
           </Card>
         </Col>
       </Row>
@@ -154,7 +146,7 @@ export default function HomePage() {
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={8}>
           <Card title="需求状态分布" styles={{ body: { padding: '12px 24px' } }}>
-            {mounted && <ReactECharts option={requirementOption} style={{ height: 240 }} />}
+            <ReactECharts option={requirementOption} style={{ height: 240 }} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
