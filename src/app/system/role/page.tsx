@@ -70,9 +70,6 @@ const menuTreeData: MenuTreeNode[] = [
       { title: '岗位管理', key: 'system:post:list' },
       { title: '字典管理', key: 'system:dict:list' },
       { title: '参数设置', key: 'system:config:list' },
-      { title: '通知公告', key: 'system:notice:list' },
-      { title: '日志管理', key: 'system:log:list' },
-      { title: '文件管理', key: 'system:file:list' },
     ],
   },
   {

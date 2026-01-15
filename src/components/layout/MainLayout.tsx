@@ -47,6 +47,15 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { key: '/', icon: <HomeOutlined />, label: '首页' },
   {
+    key: '/tenant',
+    icon: <TeamOutlined />,
+    label: '租户管理',
+    children: [
+      { key: '/tenant/tenants', icon: <UserOutlined />, label: '租户管理' },
+      { key: '/tenant/packages', icon: <UnorderedListOutlined />, label: '租户套餐管理' },
+    ],
+  },
+  {
     key: '/system',
     icon: <SettingOutlined />,
     label: '系统管理',
@@ -57,10 +66,7 @@ const menuItems: MenuItem[] = [
       { key: '/system/dept', icon: <PartitionOutlined />, label: '产品管理' },
       { key: '/system/post', icon: <IdcardOutlined />, label: '岗位管理' },
       { key: '/system/dict', icon: <BookOutlined />, label: '字典管理' },
-      { key: '/system/config', icon: <ToolOutlined />, label: '参数设置' },
-      { key: '/system/notice', icon: <BellOutlined />, label: '通知公告' },
-      { key: '/system/log', icon: <SafetyCertificateOutlined />, label: '日志管理' },
-      { key: '/system/file', icon: <FileOutlined />, label: '文件管理' },
+      { key: '/system/config', icon: <ToolOutlined />, label: '参数设置' }
     ],
   },
   { key: '/test-cases', icon: <FileTextOutlined />, label: '测试用例管理' },
