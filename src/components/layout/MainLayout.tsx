@@ -276,7 +276,7 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
                placeholder="选择租户" 
                suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
                style={{ width: 200, borderRadius: 4 }}
-               bordered={false}
+               variant="borderless"
             />
             <SearchOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
             <ExpandOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
