@@ -48,6 +48,8 @@ const getLabelByPath = (path: string) => {
   if (path.startsWith('/system/dept')) return '产品管理';
   if (path.startsWith('/system/post')) return '岗位管理';
   if (path.startsWith('/system/config')) return '参数设置';
+  if (path.startsWith('/system/service-config')) return '服务配置管理';
+  if (path.startsWith('/system/environment')) return '环境管理';
   if (path.startsWith('/system/user')) return '用户管理';
   if (path.startsWith('/system/role')) return '角色管理';
   if (path.startsWith('/test-cases')) return '测试用例管理';
