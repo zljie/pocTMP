@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目开发中 | 施工进行时</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a237e 0%, #311b92 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        #app {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #ff9800, #ffeb3b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(255, 152, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .construction-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .construction-animation {
+            flex: 1;
+            min-width: 300px;
+            height: 300px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .gear {
+            position: absolute;
+            font-size: 5rem;
+            color: #ff9800;
+            animation: spin 8s linear infinite;
+        }
+        
+        .gear-large {
+            font-size: 7rem;
+            animation-direction: reverse;
+            top: 10%;
+            left: 15%;
+        }
+        
+        .gear-medium {
+            font-size: 5.5rem;
+            bottom: 15%;
+            right: 20%;
+            animation-duration: 6s;
+        }
+        
+        .gear-small {
+            font-size: 4rem;
+            top: 40%;
+            right: 15%;
+            animation-duration: 4s;
+        }
+        
+        .toolbox {
+            position: absolute;
+            font-size: 8rem;
+            color: #4caf50;
+            z-index: 2;
+            animation: bounce 2s infinite alternate;
+        }
+        
+        .construction-cone {
+            position: absolute;
+            font-size: 3rem;
+            color: #ff9800;
+            bottom: 10%;
+            left: 10%;
+            animation: wiggle 3s infinite;
+        }
+        
+        .hammer {
+            position: absolute;
+            font-size: 4rem;
+            color: #ff5722;
+            top: 20%;
+            right: 10%;
+            animation: hammerHit 2s infinite;
+            transform-origin: top left;
+        }
+        
+        .progress-section {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .progress-info {
+            margin-bottom: 30px;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 1.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            animation: progressShine 2s infinite;
+        }
+        
+        .countdown {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .countdown-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #ffeb3b;
+        }
+        
+        .countdown-timer {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4caf50;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s, background 0.3s;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #4caf50;
+        }
+        
+        .feature-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #ffeb3b;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.5s, opacity 0.5s;
+            z-index: 100;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #ff9800, #ff5722);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        /* 动画定义 */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-20px); }
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        
+        @keyframes hammerHit {
+            0%, 100% { transform: rotate(0deg); }
+            30% { transform: rotate(-30deg); }
+            70% { transform: rotate(10deg); }
+        }
+        
+        @keyframes progressShine {
+            0% { left: -20px; }
+            100% { left: 100%; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .construction-animation {
+                height: 250px;
+            }
+            
+            .gear-large {
+                font-size: 5rem;
+            }
+            
+            .toolbox {
+                font-size: 6rem;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .construction-animation {
+                height: 200px;
+            }
+            
+            .gear {
+                font-size: 3rem;
+            }
+            
+            .gear-large {
+                font-size: 4rem;
+            }
+            
+            .toolbox {
+                font-size: 5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1><i class="fas fa-tools"></i> 开发进行中</h1>
+                <p class="subtitle">我们正在努力构建出色的产品，即将为您呈现</p>
+            </div>
+            
+            <div class="construction-area">
+                <div class="construction-animation">
+                    <i class="fas fa-cog gear gear-large"></i>
+                    <i class="fas fa-cog gear gear-medium"></i>
+                    <i class="fas fa-cog gear gear-small"></i>
+                    <i class="fas fa-toolbox toolbox"></i>
+                    <i class="fas fa-triangle-exclamation construction-cone"></i>
+                    <i class="fas fa-hammer hammer"></i>
+                </div>
+                
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <div class="progress-label">
+                            <span>开发进度</span>
+                            <span>{{ progress }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" :style="{width: progress + '%'}"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-info">
+                        <div class="progress-label">
+                            <span>测试进度</span>
+                            <span>{{ testingProgress }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" :style="{width: testingProgress + '%', background: 'linear-gradient(90deg, #2196f3, #03a9f4)'}"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="countdown">
+                        <div class="countdown-title">预计上线时间</div>
+                        <div class="countdown-timer">{{ countdown.days }}天 {{ countdown.hours }}:{{ countdown.minutes }}:{{ countdown.seconds }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3 class="feature-title">前端开发</h3>
+                    <p>使用Vue 3构建现代化用户界面，确保最佳用户体验</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <h3 class="feature-title">后端架构</h3>
+                    <p>构建稳健的服务器端架构，确保数据安全和系统稳定</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="feature-title">移动适配</h3>
+                    <p>全面响应式设计，适配手机、平板和桌面设备</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="feature-title">性能优化</h3>
+                    <p>优化加载速度和运行效率，提供流畅的使用体验</p>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <button class="btn btn-primary" @click="simulateProgress">
+                    <i class="fas fa-play"></i> 模拟进度加速
+                </button>
+                <button class="btn btn-secondary" @click="showNotification">
+                    <i class="fas fa-bell"></i> 获取更新通知
+                </button>
+                <button class="btn btn-secondary" @click="resetProgress">
+                    <i class="fas fa-redo"></i> 重置进度
+                </button>
+            </div>
+            
+            <div class="footer">
+                <p>© 2023 项目开发中 | 最后更新: {{ lastUpdate }} | 联系开发团队: dev@example.com</p>
+            </div>
+        </div>
+        
+        <div class="notification" :class="{show: notificationVisible}">
+            <i class="fas fa-check-circle"></i>
+            <span>{{ notificationText }}</span>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, onUnmounted } = Vue;
+        
+        createApp({
+            setup() {
+                // 进度状态
+                const progress = ref(65);
+                const testingProgress = ref(30);
+                const lastUpdate = ref('2023-10-15');
+                
+                // 倒计时状态
+                const countdown = ref({
+                    days: 14,
+                    hours: 6,
+                    minutes: 45,
+                    seconds: 30
+                });
+                
+                // 通知状态
+                const notificationVisible = ref(false);
+                const notificationText = ref('');
+                
+                // 进度模拟定时器
+                let progressTimer = null;
+                let countdownTimer = null;
+                
+                // 初始化进度动画
+                const initProgressAnimation = () => {
+                    // 模拟进度缓慢增长
+                    progressTimer = setInterval(() => {
+                        if (progress.value < 100) {
+                            progress.value += 0.1;
+                            progress.value = Math.min(progress.value, 100);
+                        }
+                        
+                        if (testingProgress.value < 100 && progress.value > 40) {
+                            testingProgress.value += 0.05;
+                            testingProgress.value = Math.min(testingProgress.value, 100);
+                        }
+                    }, 500);
+                };
+                
+                // 初始化倒计时
+                const initCountdown = () => {
+                    countdownTimer = setInterval(() => {
+                        if (countdown.value.seconds > 0) {
+                            countdown.value.seconds--;
+                        } else {
+                            countdown.value.seconds = 59;
+                            
+                            if (countdown.value.minutes > 0) {
+                                countdown.value.minutes--;
+                            } else {
+                                countdown.value.minutes = 59;
+                                
+                                if (countdown.value.hours > 0) {
+                                    countdown.value.hours--;
+                                } else {
+                                    countdown.value.hours = 23;
+                                    
+                                    if (countdown.value.days > 0) {
+                                        countdown.value.days--;
+                                    } else {
+                                        // 倒计时结束
+                                        clearInterval(countdownTimer);
+                                        showNotification('项目已上线！感谢您的耐心等待！');
+                                    }
+                                }
+                            }
+                        }
+                    }, 1000);
+                };
+                
+                // 模拟进度加速
+                const simulateProgress = () => {
+                    if (progress.value < 100) {
+                        progress.value += 5;
+                        progress.value = Math.min(progress.value, 100);
+                        showNotification('开发进度已加速！');
+                    }
+                    
+                    if (testingProgress.value < 100 && progress.value > 50) {
+                        testingProgress.value += 3;
+                        testingProgress.value = Math.min(testingProgress.value, 100);
+                    }
+                };
+                
+                // 重置进度
+                const resetProgress = () => {
+                    progress.value = 20;
+                    testingProgress.value = 10;
+                    showNotification('进度已重置为初始状态');
+                };
+                
+                // 显示通知
+                const showNotification = (text = '已订阅项目更新通知！我们将通过邮件通知您最新进展。') => {
+                    notificationText.value = text;
+                    notificationVisible.value = true;
+                    
+                    // 3秒后隐藏通知
+                    setTimeout(() => {
+                        notificationVisible.value = false;
+                    }, 3000);
+                };
+                
+                // 组件挂载时启动定时器
+                onMounted(() => {
+                    initProgressAnimation();
+                    initCountdown();
+                });
+                
+                // 组件卸载时清除定时器
+                onUnmounted(() => {
+                    if (progressTimer) clearInterval(progressTimer);
+                    if (countdownTimer) clearInterval(countdownTimer);
+                });
+                
+                return {
+                    progress,
+                    testingProgress,
+                    lastUpdate,
+                    countdown,
+                    notificationVisible,
+                    notificationText,
+                    simulateProgress,
+                    resetProgress,
+                    showNotification
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

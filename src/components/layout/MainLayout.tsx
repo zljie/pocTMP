@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Layout, Menu } from 'antd';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Avatar, Badge, Breadcrumb, Input, Layout, Menu, Space, Spin, message } from 'antd';
 import {
   HomeOutlined,
   FileTextOutlined,
@@ -29,7 +29,6 @@ import {
   TranslationOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
-import { Breadcrumb, Input, Space, Badge, Avatar } from 'antd';
 import TagsView from './TagsView';
 
 const { Sider, Header, Content } = Layout;
@@ -89,10 +88,60 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const [navigating, setNavigating] = useState(false);
+  const pendingPathRef = useRef<string | null>(null);
+  const firstTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const secondTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     document.title = `${title} - 智能测试平台`;
   }, [title]);
+
+  const clearNavigationTimers = useCallback(() => {
+    if (firstTimeoutRef.current) clearTimeout(firstTimeoutRef.current);
+    if (secondTimeoutRef.current) clearTimeout(secondTimeoutRef.current);
+    firstTimeoutRef.current = null;
+    secondTimeoutRef.current = null;
+  }, []);
+
+  const stopNavigationLoading = useCallback(() => {
+    clearNavigationTimers();
+    pendingPathRef.current = null;
+    setNavigating(false);
+  }, [clearNavigationTimers]);
+
+  useEffect(() => {
+    return () => {
+      clearNavigationTimers();
+    };
+  }, [clearNavigationTimers]);
+
+  useEffect(() => {
+    const pendingPath = pendingPathRef.current;
+    if (!navigating || !pendingPath) return;
+    const resolved =
+      pendingPath === '/' ? pathname === '/' : pathname === pendingPath || pathname.startsWith(`${pendingPath}/`);
+    if (resolved) setTimeout(() => stopNavigationLoading(), 0);
+  }, [pathname, navigating, stopNavigationLoading]);
+
+  const startNavigation = useCallback((targetPath: string) => {
+    const normalizedCurrent = pathname !== '/' && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+    if (targetPath === normalizedCurrent) return;
+
+    clearNavigationTimers();
+    pendingPathRef.current = targetPath;
+    setNavigating(true);
+    router.push(targetPath);
+
+    firstTimeoutRef.current = setTimeout(() => {
+      if (!pendingPathRef.current || pendingPathRef.current !== targetPath) return;
+      secondTimeoutRef.current = setTimeout(() => {
+        if (!pendingPathRef.current || pendingPathRef.current !== targetPath) return;
+        stopNavigationLoading();
+        message.error('访问时间超时，请重试');
+      }, 5000);
+    }, 2000);
+  }, [clearNavigationTimers, pathname, router, stopNavigationLoading]);
 
   // 计算当前选中的菜单 Key
   // 1. 处理 trailingSlash (例如 /test-cases/ 应匹配 /test-cases)
@@ -208,7 +257,9 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <>
+      <Spin spinning={navigating} fullscreen tip="加载中..." />
+      <Layout style={{ minHeight: '100vh' }}>
       <Sider
         collapsible
         collapsed={collapsed}
@@ -243,7 +294,7 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
           openKeys={computedOpenKeys}
           onOpenChange={(keys) => setOpenKeys(keys)}
           items={menuItems}
-          onClick={({ key }) => router.push(key)}
+          onClick={({ key }) => startNavigation(key)}
           style={{
             background: '#1a3a5f',
             borderRight: 0,
@@ -302,5 +353,6 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
         </Content>
       </Layout>
     </Layout>
+    </>
   );
 }
