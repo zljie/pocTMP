@@ -68,6 +68,9 @@ const getLabelByPath = (path: string) => {
   if (normalizedPath.startsWith('/test-reports')) return '测试报告管理';
   if (normalizedPath.startsWith('/web-automation')) return 'Web自动化测试';
   if (normalizedPath.startsWith('/performance')) return '性能测试';
+  if (normalizedPath.startsWith('/api-testing/interface')) return '接口管理';
+  if (normalizedPath.startsWith('/api-testing/message')) return '报文管理';
+  if (normalizedPath.startsWith('/api-testing/scene')) return '场景管理';
   if (normalizedPath.startsWith('/api-testing')) return '接口测试';
   if (normalizedPath.startsWith('/task-management')) return '测试任务管理';
   if (normalizedPath.startsWith('/building')) return '开发中';

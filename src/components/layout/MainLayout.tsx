@@ -27,6 +27,9 @@ import {
   SearchOutlined,
   ExpandOutlined,
   TranslationOutlined,
+  ClusterOutlined,
+  FolderOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import TagsView from './TagsView';
@@ -75,7 +78,21 @@ const menuItems: MenuItem[] = [
   { key: '/test-reports', icon: <BarChartOutlined />, label: '测试报告管理' },
   { key: '/web-automation', icon: <GlobalOutlined />, label: 'Web自动化测试' },
   { key: '/performance', icon: <DashboardOutlined />, label: '性能测试' },
-  { key: '/api-testing', icon: <ApiOutlined />, label: '接口测试' },
+  {
+    key: '/api-testing',
+    icon: <ApiOutlined />,
+    label: '接口测试',
+    children: [
+      { key: '/api-testing/interface', icon: <ApiOutlined />, label: '接口管理' },
+      { key: '/api-testing/datasource', icon: <DatabaseOutlined />, label: '数据源配置' },
+      { key: '/api-testing/variable-template', icon: <FileTextOutlined />, label: '变量模板信息管理' },
+      { key: '/api-testing/test-set', icon: <FolderOutlined />, label: '测试集管理' },
+      { key: '/api-testing/message', icon: <FileTextOutlined />, label: '报文管理' },
+      { key: '/api-testing/scene', icon: <UnorderedListOutlined />, label: '场景管理' },
+      { key: '/api-testing/combination-scene', icon: <ClusterOutlined />, label: '组合场景管理' },
+      { key: '/api-testing/test-reports', icon: <BarChartOutlined />, label: '测试报告管理' },
+    ],
+  },
   { key: '/task-management', icon: <CheckSquareOutlined />, label: '测试任务管理' },
 ];
 
