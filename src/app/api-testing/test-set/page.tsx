@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import MainLayout from '@/components/layout/MainLayout';
 import {
   Table,
   Button,
+  Card,
   Input,
   Space,
   Modal,
@@ -810,33 +812,41 @@ export default function TestSetManagementPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-4 bg-white p-4 rounded-lg shadow-sm">
-        <Form form={searchForm} layout="inline" onFinish={handleSearch}>
-          <Form.Item name="name" label="测试集名称">
-            <Input placeholder="请输入测试集名称" allowClear />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>查询</Button>
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />} style={{ background: '#1890ff' }}>新增</Button>
-          </Form.Item>
-          <Form.Item>
-            <Button danger onClick={handleBatchDelete} icon={<DeleteOutlined />}>批量删除</Button>
-          </Form.Item>
-        </Form>
-      </div>
+    <MainLayout title="测试集管理">
+      <div className="p-4">
+        <Card bordered={false} style={{ marginBottom: 12 }} styles={{ body: { padding: '16px 24px' } }}>
+          <Form form={searchForm} layout="inline" onFinish={handleSearch}>
+            <Form.Item name="name" label="测试集名称">
+              <Input placeholder="请输入测试集名称" allowClear />
+            </Form.Item>
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>查询</Button>
+                <Button onClick={() => { searchForm.resetFields(); handleSearch({}); }}>重置</Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Card>
 
-      <div className="bg-white p-4 rounded-lg shadow-sm">
-        <Table
-          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          pagination={{ total: data.length, pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
-        />
-      </div>
+        <Card bordered={false} styles={{ body: { padding: '16px 24px 24px' } }}>
+          <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
+            <Space>
+              <Button type="primary" onClick={handleAdd} icon={<PlusOutlined />}>
+                新增
+              </Button>
+              <Button danger onClick={handleBatchDelete} icon={<DeleteOutlined />}>
+                批量删除
+              </Button>
+            </Space>
+          </div>
+          <Table
+            rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+            columns={columns}
+            dataSource={data}
+            rowKey="id"
+            pagination={{ total: data.length, pageSize: 10, showTotal: (total) => `共 ${total} 条` }}
+          />
+        </Card>
 
       {/* 新增/修改测试集弹窗 */}
       <Modal
@@ -1143,5 +1153,6 @@ export default function TestSetManagementPage() {
         />
       </Modal>
     </div>
+    </MainLayout>
   );
 }

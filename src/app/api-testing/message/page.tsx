@@ -401,7 +401,7 @@ export default function MessageManagementPage() {
     <MainLayout title="报文管理">
       <div className="p-4">
         {/* Search Area */}
-        <Card bordered={false} style={{ marginBottom: 12 }} bodyStyle={{ padding: '16px 24px' }}>
+        <Card bordered={false} style={{ marginBottom: 12 }} styles={{ body: { padding: '16px 24px' } }}>
           <Form form={searchForm} layout="inline">
             <Form.Item name="name" label="报文名称">
               <Input placeholder="请输入报文名称" allowClear style={{ width: 200 }} />
@@ -416,7 +416,7 @@ export default function MessageManagementPage() {
         </Card>
 
         {/* Table Area */}
-        <Card bordered={false} bodyStyle={{ padding: '16px 24px 24px' }}>
+        <Card bordered={false} styles={{ body: { padding: '16px 24px 24px' } }}>
           <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
             <Space>
               <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增</Button>

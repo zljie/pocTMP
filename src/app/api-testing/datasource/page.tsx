@@ -48,9 +48,10 @@ export default function DataSourceConfigurationPage() {
 
   // 监听 store 变化
   useEffect(() => {
-    return dataSourceStore.subscribe(() => {
+    const unsubscribe = dataSourceStore.subscribe(() => {
       setData(dataSourceStore.getSnapshot());
     });
+    return unsubscribe;
   }, []);
 
   // 搜索处理
@@ -260,11 +261,8 @@ export default function DataSourceConfigurationPage() {
                 <Button onClick={handleSearch}>
                   查询
                 </Button>
-                <Button type="primary" onClick={handleAdd}>
-                  新增
-                </Button>
-                <Button danger onClick={handleBatchDelete}>
-                  批量删除
+                <Button onClick={handleReset}>
+                  重置
                 </Button>
               </Space>
             </Form.Item>
@@ -273,6 +271,16 @@ export default function DataSourceConfigurationPage() {
 
         {/* 表格区域 */}
         <Card bordered={false} styles={{ body: { padding: '16px 24px 24px' } }}>
+          <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
+            <Space>
+              <Button type="primary" onClick={handleAdd}>
+                新增
+              </Button>
+              <Button danger onClick={handleBatchDelete}>
+                批量删除
+              </Button>
+            </Space>
+          </div>
           <Table
             columns={columns}
             dataSource={data}
