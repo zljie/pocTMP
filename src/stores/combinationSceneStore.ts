@@ -401,6 +401,7 @@ const combinationSceneStore = (() => {
   return {
     subscribe,
     getSnapshot,
+    getServerSnapshot: getSnapshot,
     create,
     update,
     remove,

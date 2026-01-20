@@ -65,7 +65,7 @@ const SceneSelectionModal: React.FC<SceneSelectionModalProps> = ({
   onCancel,
   onSelect,
 }) => {
-  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot).scenes;
+  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot).scenes;
   const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedScenes, setSelectedScenes] = useState<SceneType[]>([]);
@@ -251,7 +251,7 @@ const TestDataViewModal: React.FC<TestDataViewModalProps> = ({
   sceneId,
   sceneName,
 }) => {
-  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot).scenes;
+  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot).scenes;
   const scene = scenes.find(s => s.id === sceneId);
   const testData = scene?.testDataList || [];
 
@@ -308,7 +308,7 @@ const ValidationRuleViewModal: React.FC<ValidationRuleViewModalProps> = ({
   sceneId,
   sceneName,
 }) => {
-  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot).scenes;
+  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot).scenes;
   const scene = scenes.find(s => s.id === sceneId);
   const rules = scene?.validationRules || [];
 
@@ -367,7 +367,8 @@ const SceneConfigModal: React.FC<SceneConfigModalProps> = ({
   const [form] = Form.useForm();
   const environments = useSyncExternalStore(
     apiTestEnvironmentStore.subscribe,
-    apiTestEnvironmentStore.getSnapshot
+    apiTestEnvironmentStore.getSnapshot,
+    apiTestEnvironmentStore.getServerSnapshot
   );
 
   // Watch async status to control field visibility/validity
@@ -934,7 +935,8 @@ const IncludedScenesModal: React.FC<IncludedScenesModalProps> = ({
 export default function CombinationScenePage() {
   const scenes = useSyncExternalStore(
     combinationSceneStore.subscribe,
-    combinationSceneStore.getSnapshot
+    combinationSceneStore.getSnapshot,
+    combinationSceneStore.getServerSnapshot
   );
 
   const [form] = Form.useForm();

@@ -269,7 +269,7 @@ const SelectNodesModal: React.FC<SelectNodesModalProps> = ({
 // --- Main Page Component ---
 
 export default function MessageManagementPage() {
-  const { messages, interfaces } = useSyncExternalStore(messageStore.subscribe, messageStore.getSnapshot);
+  const { messages, interfaces } = useSyncExternalStore(messageStore.subscribe, messageStore.getSnapshot, messageStore.getServerSnapshot);
   
   const [form] = Form.useForm();
   const [searchForm] = Form.useForm();

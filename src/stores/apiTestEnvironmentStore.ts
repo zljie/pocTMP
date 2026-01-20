@@ -137,6 +137,7 @@ const apiTestEnvironmentStore = (() => {
   return {
     subscribe,
     getSnapshot,
+    getServerSnapshot: getSnapshot,
     getById,
     create,
     update,

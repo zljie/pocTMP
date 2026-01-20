@@ -46,7 +46,7 @@ interface ExecuteSceneModalProps {
 }
 
 const ExecuteSceneModal: React.FC<ExecuteSceneModalProps> = ({ open, onCancel, scene }) => {
-  const environments = useSyncExternalStore(apiTestEnvironmentStore.subscribe, apiTestEnvironmentStore.getSnapshot);
+  const environments = useSyncExternalStore(apiTestEnvironmentStore.subscribe, apiTestEnvironmentStore.getSnapshot, apiTestEnvironmentStore.getServerSnapshot);
   
   const [step, setStep] = useState<'config' | 'result'>('config');
   const [loading, setLoading] = useState(false);
@@ -937,8 +937,8 @@ const ValidationRulesModal: React.FC<ValidationRulesModalProps> = ({
 // --- Main Page Component ---
 
 export default function SceneManagementPage() {
-  const { scenes } = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot);
-  const { messages } = useSyncExternalStore(messageStore.subscribe, messageStore.getSnapshot);
+  const { scenes } = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot);
+  const { messages } = useSyncExternalStore(messageStore.subscribe, messageStore.getSnapshot, messageStore.getServerSnapshot);
   
   const [form] = Form.useForm();
   const [searchForm] = Form.useForm();

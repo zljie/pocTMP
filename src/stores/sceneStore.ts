@@ -369,6 +369,7 @@ const sceneStore = (() => {
   return {
     subscribe,
     getSnapshot,
+    getServerSnapshot: getSnapshot,
     createScene,
     updateScene,
     removeScenes,

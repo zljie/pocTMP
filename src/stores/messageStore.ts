@@ -267,6 +267,7 @@ const messageStore = (() => {
   return {
     subscribe,
     getSnapshot,
+    getServerSnapshot: getSnapshot,
     createMessage,
     updateMessage,
     removeMessages,
