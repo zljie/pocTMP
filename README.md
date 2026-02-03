@@ -42,13 +42,36 @@
    - 状态管理
    - 日期范围选择
 
+5. **系统管理** (`/system/*`)
+   - 覆盖用户/角色/菜单/产品/岗位/参数/字典/环境/服务配置等系统配置能力
+   - 页面数：14；功能点数：107（统计口径见“模块盘点”）
+
+6. **租户管理** (`/tenant/*`)
+   - 租户管理：查询、新增/修改、启停、删除/批量删除、导出、同步租户字典/参数（模拟）
+   - 租户套餐：新增/修改/删除/导出、关联菜单树选择（展开/全选/父子联动）
+   - 页面数：2；功能点数：24（统计口径见“模块盘点”）
+
+7. **接口测试** (`/api-testing/*`)
+   - 覆盖接口/报文/场景/组合场景/测试集/测试报告、数据源配置、变量模板等能力（含多弹窗配置与运行模拟）
+   - 页面数：9；功能点数：158（统计口径见“模块盘点”）
+
+### 模块盘点（页面/功能点统计）
+
+统计口径：
+- 页面数：按 Next.js App Router 路由页面文件统计（`src/app/**/page.tsx`）
+- 功能点数：按“用户可操作能力”逐页归纳（查询/重置、列表、增删改、批量、导入导出、配置、运行等）
+
+| 模块 | 路由前缀 | 页面数 | 功能点数 | 说明 |
+| --- | --- | ---: | ---: | --- |
+| 系统管理 | `/system` | 14 | 107 | 以系统配置类列表/详情/新增页为主 |
+| 租户管理 | `/tenant` | 2 | 24 | 含租户管理与租户套餐 |
+| 接口测试 | `/api-testing` | 9 | 158 | 含接口管理、场景/组合场景、测试集与测试报告等 |
+
 ### 待开发模块
 
 - 测试执行管理
-- 测试报告管理
 - Web自动化测试
 - 性能测试
-- 接口测试
 - 测试任务管理
 
 ## 项目结构
@@ -122,6 +145,39 @@ pnpm build
 2. 使用 `src/lib/api.ts` 中已封装好的API方法
 
 3. 将页面中的 `mockData` 替换为API调用
+
+## AI 能力（DeepSeek）
+
+平台已内置 DeepSeek 的统一调用入口，供后续在不同模块复用。
+
+### 环境变量
+
+在运行环境中配置以下变量（建议仅在服务端环境变量中配置密钥，不要暴露到浏览器）：
+
+```
+DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_API_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_API_URL=
+```
+
+### 调用方式
+
+- 服务端路由：`POST /api/ai/deepseek/chat/`
+  - 请求体：`{ messages, model?, temperature?, top_p?, max_tokens?, ... }`
+  - 返回：`{ content, raw }`
+
+- 前端调用（推荐复用封装方法）：
+
+```ts
+import { deepseekChat, toMessages } from '@/lib/deepseek';
+
+const result = await deepseekChat({
+  messages: toMessages('请用一句话总结本次测试报告'),
+});
+
+console.log(result.content);
+```
 
 ## 响应式设计
 
