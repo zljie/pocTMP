@@ -26,6 +26,8 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps, UploadFile } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
 import { postJson } from '@/lib/ai/client';
+import sceneStore from '@/stores/sceneStore';
+import messageStore, { MessageType } from '@/stores/messageStore';
 
 type AiScenario = {
   name: string;
@@ -273,12 +275,14 @@ export default function InterfaceManagementPage() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<AiSceneGenResult | null>(null);
   const [aiInterface, setAiInterface] = useState<InterfaceType | null>(null);
+  const [selectedAiScenarioKeys, setSelectedAiScenarioKeys] = useState<React.Key[]>([]);
 
   const runAiSceneSuggestion = async (record: InterfaceType) => {
     setAiInterface(record);
     setAiModalOpen(true);
     setAiError(null);
     setAiResult(null);
+    setSelectedAiScenarioKeys([]);
     setAiLoading(true);
 
     const paramsForAi = params.filter((p) => p.interfaceId === record.id).map((p) => ({
@@ -307,6 +311,68 @@ export default function InterfaceManagementPage() {
       return;
     }
     setAiResult(resp.result);
+  };
+
+  const handleBatchAddScenes = () => {
+    if (!aiResult || !aiInterface) return;
+    
+    const selectedScenarios = aiResult.scenarios.filter(s => 
+      selectedAiScenarioKeys.includes(`${s.category}-${s.name}`)
+    );
+
+    if (selectedScenarios.length === 0) {
+      message.warning('请选择要新增的场景');
+      return;
+    }
+
+    // Find or create message
+    const { messages } = messageStore.getSnapshot();
+    let targetMessageId = '';
+    let targetMessageName = '';
+
+    const existingMessage = messages.find((m: MessageType) => m.interfaceId === aiInterface.id && m.status === 'active');
+    
+    if (existingMessage) {
+        targetMessageId = existingMessage.id;
+        targetMessageName = existingMessage.name;
+    } else {
+        const newMessage = messageStore.createMessage({
+            name: `${aiInterface.name}_DefaultMessage`,
+            type: 'JSON',
+            interfaceId: aiInterface.id,
+            interfaceName: aiInterface.name_cn || aiInterface.name,
+            status: 'active',
+            sceneCount: 0,
+            projectId: aiInterface.projectId,
+            projectName: aiInterface.projectName,
+            createNormalScene: true,
+        });
+        targetMessageId = newMessage.id;
+        targetMessageName = newMessage.name;
+    }
+
+    // Create scenes
+    selectedScenarios.forEach(scenario => {
+        sceneStore.createScene({
+            name: scenario.name,
+            messageId: targetMessageId,
+            messageName: targetMessageName,
+            interfaceId: aiInterface.id,
+            interfaceName: aiInterface.name_cn || aiInterface.name,
+            status: 'active',
+            testDataCount: 0,
+            validationRuleCount: 0,
+            projectId: aiInterface.projectId,
+            projectName: aiInterface.projectName,
+            environmentIds: [],
+            requestPath: aiInterface.path,
+            remark: `AI生成 (${scenario.category}): ${scenario.notes || ''}`,
+            returnExample: scenario.requestExample,
+        });
+    });
+
+    message.success(`成功新增 ${selectedScenarios.length} 个场景`);
+    setSelectedAiScenarioKeys([]);
   };
 
   // 搜索处理
@@ -1063,7 +1129,21 @@ export default function InterfaceManagementPage() {
         </Modal>
 
         <Modal
-          title={`AI 场景建议 - ${aiInterface?.name_cn || aiInterface?.name || ''}`}
+          title={
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: 24 }}>
+                <span>AI 场景建议 - {aiInterface?.name_cn || aiInterface?.name || ''}</span>
+                {aiResult && (
+                    <Button 
+                        type="primary" 
+                        size="small" 
+                        onClick={handleBatchAddScenes}
+                        disabled={selectedAiScenarioKeys.length === 0}
+                    >
+                        新增场景 ({selectedAiScenarioKeys.length})
+                    </Button>
+                )}
+            </div>
+          }
           open={aiModalOpen}
           onCancel={() => setAiModalOpen(false)}
           footer={null}
@@ -1076,6 +1156,10 @@ export default function InterfaceManagementPage() {
               <div style={{ marginTop: 12, marginBottom: 12 }}>{aiResult.summary}</div>
               <Table<AiScenario>
                 rowKey={(r) => `${r.category}-${r.name}`}
+                rowSelection={{
+                    selectedRowKeys: selectedAiScenarioKeys,
+                    onChange: setSelectedAiScenarioKeys,
+                }}
                 columns={[
                   { title: '场景名称', dataIndex: 'name', width: 240, ellipsis: true },
                   { title: '类别', dataIndex: 'category', width: 120 },
