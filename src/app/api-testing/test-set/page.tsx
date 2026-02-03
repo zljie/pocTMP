@@ -32,6 +32,9 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { AiResultView } from '@/components/ai/AiResultView';
+import { analyzeReport, diagnoseError } from '@/lib/ai/client';
+import type { AiResult } from '@/lib/ai/types';
 
 // 测试集类型定义
 interface TestSetType {
@@ -336,6 +339,13 @@ export default function TestSetManagementPage() {
   // 测试执行弹窗状态
   const [executionModalOpen, setExecutionModalOpen] = useState(false);
   const [executingTestSet, setExecutingTestSet] = useState<TestSetType | null>(null);
+
+  const [aiAnalysisOpen, setAiAnalysisOpen] = useState(false);
+  const [aiDiagnosisOpen, setAiDiagnosisOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<AiResult | null>(null);
+  const [diagnosisText, setDiagnosisText] = useState('');
 
   // ----------------- 列定义 -----------------
 
@@ -736,6 +746,65 @@ export default function TestSetManagementPage() {
     setExecutionModalOpen(true);
   };
 
+  const runAiAnalysis = async () => {
+    if (!executingTestSet) return;
+    setAiError(null);
+    setAiResult(null);
+    setAiLoading(true);
+    setAiAnalysisOpen(true);
+
+    const payload = {
+      testSet: executingTestSet,
+      stats: {
+        total: 49,
+        completed: 20,
+        success: 0,
+        failure: 0,
+        exception: 20,
+        skip: 29,
+        progressPercent: 100,
+      },
+    };
+
+    const resp = await analyzeReport({
+      title: `${executingTestSet.name}-测试集执行分析`,
+      context: '输出执行概览、失败归因、风险项与改进建议，并附可复制的 Markdown。',
+      data: payload,
+    });
+
+    setAiLoading(false);
+    if ('error' in resp) {
+      setAiError(resp.error.message);
+      return;
+    }
+    setAiResult(resp.result);
+  };
+
+  const runAiDiagnosis = async () => {
+    if (!executingTestSet) return;
+    if (!diagnosisText.trim()) {
+      setAiError('请先粘贴异常文本');
+      return;
+    }
+
+    setAiError(null);
+    setAiResult(null);
+    setAiLoading(true);
+
+    const resp = await diagnoseError({
+      title: `${executingTestSet.name}-异常诊断`,
+      context: '来源：测试集执行弹窗；请基于异常文本输出根因与排查步骤。',
+      errorText: diagnosisText,
+    });
+
+    setAiLoading(false);
+    if ('error' in resp) {
+      setAiError(resp.error.message);
+      return;
+    }
+    setAiResult(resp.result);
+  };
+
   // ----------------- 公共变量相关 -----------------
 
   const handleAddPublicVar = () => {
@@ -1106,6 +1175,24 @@ export default function TestSetManagementPage() {
         width={800}
         footer={null}
       >
+        <div style={{ marginBottom: 12 }}>
+          <Space>
+            <Button type="primary" onClick={runAiAnalysis} disabled={!executingTestSet}>
+              AI 分析
+            </Button>
+            <Button
+              onClick={() => {
+                setAiDiagnosisOpen(true);
+                setAiError(null);
+                setAiResult(null);
+                setDiagnosisText('');
+              }}
+              disabled={!executingTestSet}
+            >
+              AI 异常诊断
+            </Button>
+          </Space>
+        </div>
         <div style={{ marginBottom: 20 }}>
           <Alert 
              message={
@@ -1151,6 +1238,44 @@ export default function TestSetManagementPage() {
           showIcon
           style={{ fontSize: 12 }}
         />
+      </Modal>
+
+      <Modal
+        title="AI 执行分析"
+        open={aiAnalysisOpen}
+        onCancel={() => setAiAnalysisOpen(false)}
+        footer={null}
+        width={1000}
+      >
+        {aiLoading ? <Alert type="info" message="AI 正在生成，请稍候..." showIcon /> : null}
+        {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
+        {aiResult ? <AiResultView result={aiResult} /> : null}
+      </Modal>
+
+      <Modal
+        title="AI 异常诊断"
+        open={aiDiagnosisOpen}
+        onCancel={() => setAiDiagnosisOpen(false)}
+        footer={null}
+        width={1000}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <Input.TextArea
+            rows={6}
+            placeholder="粘贴异常文本/日志片段（例如：Connect timed out、状态码、traceId 等）"
+            value={diagnosisText}
+            onChange={(e) => setDiagnosisText(e.target.value)}
+          />
+          <div style={{ marginTop: 12 }}>
+            <Space>
+              <Button type="primary" onClick={runAiDiagnosis} loading={aiLoading}>
+                生成诊断
+              </Button>
+            </Space>
+          </div>
+        </div>
+        {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
+        {aiResult ? <AiResultView result={aiResult} /> : null}
       </Modal>
     </div>
     </MainLayout>

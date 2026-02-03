@@ -91,6 +91,16 @@ const menuItems: MenuItem[] = [
       { key: '/api-testing/scene', icon: <UnorderedListOutlined />, label: '场景管理' },
       { key: '/api-testing/combination-scene', icon: <ClusterOutlined />, label: '组合场景管理' },
       { key: '/api-testing/test-reports', icon: <BarChartOutlined />, label: '测试报告管理' },
+      {
+        key: '/api-testing/ai',
+        icon: <RobotOutlined />,
+        label: 'AI能力',
+        children: [
+          { key: '/api-testing/ai/scene-generator', icon: <RobotOutlined />, label: 'AI 场景生成' },
+          { key: '/api-testing/ai/diagnosis', icon: <RobotOutlined />, label: 'AI 异常诊断' },
+          { key: '/api-testing/ai/report', icon: <RobotOutlined />, label: 'AI 报告分析' },
+        ],
+      },
     ],
   },
   { key: '/task-management', icon: <CheckSquareOutlined />, label: '测试任务管理' },

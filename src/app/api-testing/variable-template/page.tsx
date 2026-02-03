@@ -24,6 +24,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import MainLayout from '@/components/layout/MainLayout';
+import { deepseekChat, toMessages } from '@/lib/deepseek';
 
 // 变量模板类型定义
 interface VariableTemplateType {
@@ -133,6 +134,10 @@ export default function VariableTemplatePage() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [configType, setConfigType] = useState<string>(''); // HTTP, DATE, etc.
   const [currentConfigValue, setCurrentConfigValue] = useState<any>({});
+
+  const [aiValueOpen, setAiValueOpen] = useState(false);
+  const [aiValueLoading, setAiValueLoading] = useState(false);
+  const [aiValuePrompt, setAiValuePrompt] = useState('');
 
   // 搜索处理
   const handleSearch = () => {
@@ -255,6 +260,51 @@ export default function VariableTemplatePage() {
       
       setIsConfigModalOpen(false);
       message.success('配置已保存');
+  };
+
+  const openAiValueModal = () => {
+    const type = form.getFieldValue('type');
+    if (!type) {
+      message.warning('请先选择变量类型');
+      return;
+    }
+    setAiValuePrompt('');
+    setAiValueOpen(true);
+  };
+
+  const handleAiValueOk = async () => {
+    const type = form.getFieldValue('type') as string;
+    if (!type) return;
+    if (!aiValuePrompt.trim()) {
+      message.warning('请输入需求描述');
+      return;
+    }
+
+    setAiValueLoading(true);
+    try {
+      const system =
+        type === 'CONSTANT'
+          ? '你是智能测试平台变量模板助手。请只输出变量值，不要输出多余文字。'
+          : '你是智能测试平台变量模板助手。请只输出合法 JSON（不要包含 Markdown 代码块），用于变量模板 value 字段。';
+
+      const { content } = await deepseekChat({
+        messages: toMessages(
+          `变量类型：${type}\n需求：${aiValuePrompt}\n请给出可直接写入 value 字段的内容。`,
+          system
+        ),
+        temperature: 0.3,
+        max_tokens: 800,
+      });
+
+      form.setFieldsValue({ value: content });
+      setAiValueOpen(false);
+      message.success('AI 已生成变量值');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'AI 生成失败';
+      message.error(msg);
+    } finally {
+      setAiValueLoading(false);
+    }
   };
 
   const handleModalOk = () => {
@@ -520,6 +570,7 @@ export default function VariableTemplatePage() {
                    <div style={{ display: 'flex', gap: '8px' }}>
                        <Input disabled placeholder="请点击配置按钮" />
                        <Button type="primary" onClick={openConfigModal}>配置</Button>
+                       <Button onClick={openAiValueModal} loading={aiValueLoading}>AI生成</Button>
                    </div>
                 </Form.Item>
             )}
@@ -641,6 +692,26 @@ export default function VariableTemplatePage() {
                     </Form.Item>
                 </Form>
             )}
+        </Modal>
+
+        <Modal
+          title="AI 生成变量值"
+          open={aiValueOpen}
+          onOk={handleAiValueOk}
+          onCancel={() => setAiValueOpen(false)}
+          okText="生成"
+          confirmLoading={aiValueLoading}
+          width={700}
+        >
+          <div style={{ marginBottom: 8, color: '#666' }}>
+            请描述你希望生成的变量模板配置，例如：Headers/Querys/Authorization/Method/超时等。
+          </div>
+          <Input.TextArea
+            rows={6}
+            value={aiValuePrompt}
+            onChange={(e) => setAiValuePrompt(e.target.value)}
+            placeholder="例如：生成一个 HTTP 类型配置，Method=POST，Headers 里包含 Content-Type=application/json"
+          />
         </Modal>
       </div>
     </MainLayout>

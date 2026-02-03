@@ -15,6 +15,7 @@ import {
   Popconfirm,
   Upload,
   Switch,
+  Alert,
 } from 'antd';
 import {
   UploadOutlined,
@@ -24,6 +25,20 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps, UploadFile } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
+import { postJson } from '@/lib/ai/client';
+
+type AiScenario = {
+  name: string;
+  category: 'normal' | 'boundary' | 'exception' | 'auth' | 'idempotency' | 'other';
+  requestExample?: string;
+  assertions?: string[];
+  notes?: string;
+};
+
+type AiSceneGenResult = {
+  summary: string;
+  scenarios: AiScenario[];
+};
 
 // 接口类型定义
 interface InterfaceType {
@@ -252,6 +267,47 @@ export default function InterfaceManagementPage() {
   const [paramFormVisible, setParamFormVisible] = useState(false);
   const [paramFormTitle, setParamFormTitle] = useState('新增参数');
   const [editingParamId, setEditingParamId] = useState<string | null>(null);
+
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<AiSceneGenResult | null>(null);
+  const [aiInterface, setAiInterface] = useState<InterfaceType | null>(null);
+
+  const runAiSceneSuggestion = async (record: InterfaceType) => {
+    setAiInterface(record);
+    setAiModalOpen(true);
+    setAiError(null);
+    setAiResult(null);
+    setAiLoading(true);
+
+    const paramsForAi = params.filter((p) => p.interfaceId === record.id).map((p) => ({
+      identifier: p.identifier,
+      name: p.name,
+      paramIn: p.paramIn,
+      required: p.required,
+      type: p.type,
+      path: p.path,
+      defaultValue: p.defaultValue,
+      remark: p.remark,
+    }));
+
+    const resp = await postJson<AiSceneGenResult>('/api/ai/interface-testing/scene-generation/', {
+      goal: '基于该接口生成测试场景建议清单（正常/边界/异常/鉴权/幂等）。',
+      interfaceName: record.name_cn || record.name,
+      method: record.method,
+      path: record.path,
+      params: paramsForAi,
+      context: `项目：${record.projectName}；协议：${record.protocol}；状态：${record.status}`,
+    });
+
+    setAiLoading(false);
+    if ('error' in resp) {
+      setAiError(resp.error.message);
+      return;
+    }
+    setAiResult(resp.result);
+  };
 
   // 搜索处理
   const handleSearch = () => {
@@ -610,10 +666,18 @@ export default function InterfaceManagementPage() {
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 180,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            onClick={() => runAiSceneSuggestion(record)}
+            style={{ padding: 0 }}
+          >
+            AI建议
+          </Button>
           <Button
             type="link"
             size="small"
@@ -996,6 +1060,39 @@ export default function InterfaceManagementPage() {
               <Input.TextArea placeholder="备注" rows={2} />
             </Form.Item>
           </Form>
+        </Modal>
+
+        <Modal
+          title={`AI 场景建议 - ${aiInterface?.name_cn || aiInterface?.name || ''}`}
+          open={aiModalOpen}
+          onCancel={() => setAiModalOpen(false)}
+          footer={null}
+          width={1100}
+        >
+          {aiLoading ? <Alert type="info" message="AI 正在生成，请稍候..." showIcon /> : null}
+          {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
+          {aiResult ? (
+            <>
+              <div style={{ marginTop: 12, marginBottom: 12 }}>{aiResult.summary}</div>
+              <Table<AiScenario>
+                rowKey={(r) => `${r.category}-${r.name}`}
+                columns={[
+                  { title: '场景名称', dataIndex: 'name', width: 240, ellipsis: true },
+                  { title: '类别', dataIndex: 'category', width: 120 },
+                  { title: '请求示例', dataIndex: 'requestExample', ellipsis: true },
+                  {
+                    title: '断言建议',
+                    dataIndex: 'assertions',
+                    render: (v: string[] | undefined) => (v?.length ? v.join('；') : '-'),
+                    ellipsis: true,
+                  },
+                  { title: '备注', dataIndex: 'notes', ellipsis: true },
+                ]}
+                dataSource={aiResult.scenarios}
+                pagination={{ pageSize: 8 }}
+              />
+            </>
+          ) : null}
         </Modal>
       </div>
     </MainLayout>

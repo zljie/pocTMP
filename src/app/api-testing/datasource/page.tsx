@@ -12,10 +12,12 @@ import {
   Form,
   message,
   Popconfirm,
+  Alert,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import MainLayout from '@/components/layout/MainLayout';
 import dataSourceStore, { DataSource } from '@/stores/dataSourceStore';
+import { deepseekChat, toMessages } from '@/lib/deepseek';
 
 // 模拟项目数据
 const mockProjects = [
@@ -46,12 +48,26 @@ export default function DataSourceConfigurationPage() {
   const [modalTitle, setModalTitle] = useState('新增数据源');
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiText, setAiText] = useState<string>('');
+  const [aiTarget, setAiTarget] = useState<DataSource | null>(null);
+
+  const [sqlOpen, setSqlOpen] = useState(false);
+  const [sqlLoading, setSqlLoading] = useState(false);
+  const [sqlError, setSqlError] = useState<string | null>(null);
+  const [sqlPrompt, setSqlPrompt] = useState('');
+  const [sqlResult, setSqlResult] = useState<string>('');
+
   // 监听 store 变化
   useEffect(() => {
     const unsubscribe = dataSourceStore.subscribe(() => {
       setData(dataSourceStore.getSnapshot());
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // 搜索处理
@@ -91,6 +107,63 @@ export default function DataSourceConfigurationPage() {
       ...record,
     });
     setIsModalOpen(true);
+  };
+
+  const openAiCheck = async (record: DataSource) => {
+    setAiTarget(record);
+    setAiOpen(true);
+    setAiError(null);
+    setAiText('');
+    setAiLoading(true);
+
+    try {
+      const system = '你是智能测试平台的数据源配置审查助手。请输出简洁要点列表（纯文本），不输出多余内容。';
+      const user = `数据源信息：\n- dbType: ${record.dbType}\n- connectionAddress: ${record.connectionAddress}\n- dbName: ${record.dbName}\n- username: ${record.username}\n- projectName: ${record.projectName}\n- remark: ${record.remark || ''}\n\n请检查可能的配置问题与安全风险（不要输出任何密码）。`;
+      const { content } = await deepseekChat({
+        messages: toMessages(user, system),
+        temperature: 0.2,
+        max_tokens: 600,
+      });
+      setAiText(content);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'AI 自检失败';
+      setAiError(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const openSqlHelper = () => {
+    setSqlPrompt('');
+    setSqlResult('');
+    setSqlError(null);
+    setSqlOpen(true);
+  };
+
+  const runSqlHelper = async () => {
+    if (!sqlPrompt.trim()) {
+      setSqlError('请输入查询需求');
+      return;
+    }
+    setSqlError(null);
+    setSqlResult('');
+    setSqlLoading(true);
+    try {
+      const system =
+        '你是智能测试平台的 SQL 助手。请只输出一段可执行的 SQL（不要 Markdown 代码块），并假设为只读查询。';
+      const user = `数据库类型：${searchForm.getFieldValue('dbType') || ''}\n需求：${sqlPrompt}\n请输出 SQL。`;
+      const { content } = await deepseekChat({
+        messages: toMessages(user, system),
+        temperature: 0.2,
+        max_tokens: 600,
+      });
+      setSqlResult(content);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'AI 生成 SQL 失败';
+      setSqlError(msg);
+    } finally {
+      setSqlLoading(false);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -221,11 +294,14 @@ export default function DataSourceConfigurationPage() {
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 180,
       fixed: 'right',
       align: 'center',
       render: (_, record) => (
         <Space size="small">
+          <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openAiCheck(record)}>
+            AI自检
+          </Button>
           <Button
             type="link"
             size="small"
@@ -279,6 +355,7 @@ export default function DataSourceConfigurationPage() {
               <Button danger onClick={handleBatchDelete}>
                 批量删除
               </Button>
+              <Button onClick={openSqlHelper}>AI SQL建议</Button>
             </Space>
           </div>
           <Table
@@ -362,6 +439,46 @@ export default function DataSourceConfigurationPage() {
               <Input.TextArea placeholder="备注" rows={3} maxLength={255} showCount />
             </Form.Item>
           </Form>
+        </Modal>
+
+        <Modal
+          title={`AI 自检 - ${aiTarget?.dbName || ''}`}
+          open={aiOpen}
+          onCancel={() => setAiOpen(false)}
+          footer={null}
+          width={900}
+        >
+          {aiLoading ? <Alert type="info" message="AI 正在分析，请稍候..." showIcon /> : null}
+          {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
+          {aiText ? (
+            <pre style={{ marginTop: 12, padding: 12, background: '#fafafa', border: '1px solid #f0f0f0' }}>
+              {aiText}
+            </pre>
+          ) : null}
+        </Modal>
+
+        <Modal
+          title="AI SQL建议"
+          open={sqlOpen}
+          onCancel={() => setSqlOpen(false)}
+          onOk={runSqlHelper}
+          okText="生成"
+          confirmLoading={sqlLoading}
+          width={900}
+        >
+          <div style={{ marginBottom: 8, color: '#666' }}>输入查询目标或表字段描述，生成只读查询 SQL（不会在平台执行）。</div>
+          <Input.TextArea
+            rows={5}
+            placeholder="例如：查询最近7天登录失败的用户数，按天分组"
+            value={sqlPrompt}
+            onChange={(e) => setSqlPrompt(e.target.value)}
+          />
+          {sqlError ? <Alert type="error" message={sqlError} showIcon style={{ marginTop: 12 }} /> : null}
+          {sqlResult ? (
+            <pre style={{ marginTop: 12, padding: 12, background: '#fafafa', border: '1px solid #f0f0f0' }}>
+              {sqlResult}
+            </pre>
+          ) : null}
         </Modal>
       </div>
     </MainLayout>

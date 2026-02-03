@@ -21,6 +21,7 @@ import {
   InputNumber,
   Tree,
   Descriptions,
+  Alert,
 } from 'antd';
 import {
   SearchOutlined,
@@ -31,6 +32,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import messageStore, { MessageType, InterfaceType, HeaderConfig } from '@/stores/messageStore';
+import { postJson } from '@/lib/ai/client';
 
 // --- Sub-Components ---
 
@@ -286,6 +288,8 @@ export default function MessageManagementPage() {
   // Temp state for header config
   const [currentHeaderConfig, setCurrentHeaderConfig] = useState<HeaderConfig | undefined>(undefined);
   const [currentNodeIds, setCurrentNodeIds] = useState<string[]>([]);
+  const [aiGenLoading, setAiGenLoading] = useState(false);
+  const [aiGenError, setAiGenError] = useState<string | null>(null);
 
   // Search logic
   const [filteredMessages, setFilteredMessages] = useState<MessageType[]>(messages);
@@ -359,6 +363,45 @@ export default function MessageManagementPage() {
     } catch (error) {
       console.error('Validation failed:', error);
     }
+  };
+
+  const handleAiGenerateBody = async () => {
+    setAiGenError(null);
+    const interfaceName = form.getFieldValue('interfaceName') as string | undefined;
+    const requestPath = form.getFieldValue('requestPath') as string | undefined;
+    const type = form.getFieldValue('type') as string | undefined;
+
+    if (!interfaceName && !requestPath) {
+      setAiGenError('请先选择所属接口');
+      return;
+    }
+
+    setAiGenLoading(true);
+    const resp = await postJson<{ summary: string; scenarios: Array<{ requestExample?: string }> }>(
+      '/api/ai/interface-testing/scene-generation/',
+      {
+        goal: '只生成一个可直接使用的请求示例（尽量为 JSON），用于该接口的入参报文。',
+        interfaceName: interfaceName || '',
+        method: currentHeaderConfig?.method || '',
+        path: requestPath || '',
+        params: { messageType: type || '' },
+        context: currentNodeIds.length ? `已选择节点：${currentNodeIds.join(',')}` : '',
+      }
+    );
+    setAiGenLoading(false);
+
+    if ('error' in resp) {
+      setAiGenError(resp.error.message);
+      return;
+    }
+
+    const example = resp.result.scenarios?.[0]?.requestExample;
+    if (!example) {
+      setAiGenError('AI 未返回可用的请求示例');
+      return;
+    }
+    form.setFieldsValue({ body: example });
+    message.success('已生成入参报文');
   };
 
   // Columns
@@ -483,6 +526,7 @@ export default function MessageManagementPage() {
             <Form.Item label="完整入参报文">
               <Space style={{ marginBottom: 8 }}>
                 <Button onClick={() => setNodesModalOpen(true)}>选择</Button>
+                <Button onClick={handleAiGenerateBody} loading={aiGenLoading}>AI生成</Button>
                 <Button>验证</Button>
                 <Button>格式化</Button>
               </Space>
@@ -493,6 +537,8 @@ export default function MessageManagementPage() {
                 />
               </Form.Item>
             </Form.Item>
+
+            {aiGenError ? <Alert type="error" message={aiGenError} showIcon style={{ marginBottom: 12 }} /> : null}
 
             <Form.Item name="status" label="当前状态" initialValue="active" rules={[{ required: true }]}>
               <Radio.Group>

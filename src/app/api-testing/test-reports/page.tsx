@@ -12,9 +12,13 @@ import {
   Form,
   message,
   Popconfirm,
+  Alert,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import MainLayout from '@/components/layout/MainLayout';
+import { AiResultView } from '@/components/ai/AiResultView';
+import { analyzeReport } from '@/lib/ai/client';
+import type { AiResult } from '@/lib/ai/types';
 
 // 测试报告类型定义
 interface TestReportType {
@@ -217,6 +221,11 @@ export default function TestReportManagementPage() {
   const [currentReport, setCurrentReport] = useState<TestReportType | null>(null);
   const [currentDetails, setCurrentDetails] = useState<ReportDetailType[]>([]);
 
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<AiResult | null>(null);
+
   // 搜索处理
   const handleSearch = () => {
     const values = searchForm.getFieldsValue();
@@ -265,6 +274,32 @@ export default function TestReportManagementPage() {
     // 为了演示效果，我们总是显示 initialDetails
     setCurrentDetails(initialDetails); 
     setDetailModalVisible(true);
+  };
+
+  const openAiModal = async () => {
+    if (!currentReport) return;
+    setAiModalVisible(true);
+    setAiError(null);
+    setAiResult(null);
+    setAiLoading(true);
+
+    const payload = {
+      report: currentReport,
+      details: currentDetails,
+    };
+
+    const resp = await analyzeReport({
+      title: `${currentReport.testSetName}-测试报告`,
+      context: '输出管理摘要、研发摘要、Top失败原因、风险项与改进建议，并附可复制的 Markdown。',
+      data: payload,
+    });
+
+    setAiLoading(false);
+    if ('error' in resp) {
+      setAiError(resp.error.message);
+      return;
+    }
+    setAiResult(resp.result);
   };
 
   // 详情列定义
@@ -521,10 +556,20 @@ export default function TestReportManagementPage() {
         <Modal
           title={`${currentReport?.testSetName || ''}的测试报告`}
           open={detailModalVisible}
-          onCancel={() => setDetailModalVisible(false)}
+          onCancel={() => {
+            setDetailModalVisible(false);
+            setAiModalVisible(false);
+          }}
           footer={null}
           width={1000}
         >
+          <div style={{ marginBottom: 12 }}>
+            <Space>
+              <Button type="primary" onClick={openAiModal} disabled={!currentReport}>
+                AI 分析/生成报告
+              </Button>
+            </Space>
+          </div>
           <Table
             columns={detailColumns}
             dataSource={currentDetails}
@@ -535,6 +580,18 @@ export default function TestReportManagementPage() {
             }}
             size="middle"
           />
+        </Modal>
+
+        <Modal
+          title="AI 报告分析"
+          open={aiModalVisible}
+          onCancel={() => setAiModalVisible(false)}
+          footer={null}
+          width={1000}
+        >
+          {aiLoading ? <Alert type="info" message="AI 正在生成，请稍候..." showIcon /> : null}
+          {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
+          {aiResult ? <AiResultView result={aiResult} /> : null}
         </Modal>
       </div>
     </MainLayout>

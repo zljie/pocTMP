@@ -20,6 +20,7 @@ import {
   Checkbox,
   Switch,
   Tabs,
+  Alert,
 } from 'antd';
 import {
   SearchOutlined,
@@ -35,6 +36,8 @@ import type { ColumnsType } from 'antd/es/table';
 import sceneStore, { SceneType, SceneTestData, ValidationRule } from '@/stores/sceneStore';
 import messageStore, { MessageType } from '@/stores/messageStore';
 import apiTestEnvironmentStore from '@/stores/apiTestEnvironmentStore';
+import { postJson } from '@/lib/ai/client';
+import { useRouter } from 'next/navigation';
 
 // --- Sub-Components ---
 
@@ -937,6 +940,7 @@ const ValidationRulesModal: React.FC<ValidationRulesModalProps> = ({
 // --- Main Page Component ---
 
 export default function SceneManagementPage() {
+  const router = useRouter();
   const { scenes } = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot);
   const { messages } = useSyncExternalStore(messageStore.subscribe, messageStore.getSnapshot, messageStore.getServerSnapshot);
   
@@ -957,6 +961,12 @@ export default function SceneManagementPage() {
   // Temp state
   const [currentEnvIds, setCurrentEnvIds] = useState<string[]>([]);
   const [currentScene, setCurrentScene] = useState<SceneType | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSummary, setAiSummary] = useState<string>('');
+  const [aiScenarios, setAiScenarios] = useState<Array<{ name: string; category: string; requestExample?: string; assertions?: string[]; notes?: string }>>([]);
+  const [aiTarget, setAiTarget] = useState<SceneType | null>(null);
 
   // Search logic
   const [filteredScenes, setFilteredScenes] = useState<SceneType[]>(scenes);
@@ -1009,6 +1019,35 @@ export default function SceneManagementPage() {
   const handleDelete = (id: string) => {
     sceneStore.removeScenes([id]);
     message.success('删除成功');
+  };
+
+  const openAiSuggestion = async (record: SceneType) => {
+    setAiTarget(record);
+    setAiOpen(true);
+    setAiError(null);
+    setAiSummary('');
+    setAiScenarios([]);
+    setAiLoading(true);
+
+    const resp = await postJson<{ summary: string; scenarios: Array<{ name: string; category: string; requestExample?: string; assertions?: string[]; notes?: string }> }>(
+      '/api/ai/interface-testing/scene-generation/',
+      {
+        goal: '基于该场景与接口信息，给出优化建议、测试数据思路与断言建议。',
+        interfaceName: record.interfaceName,
+        method: '',
+        path: record.requestPath || '',
+        params: { messageName: record.messageName },
+        context: `场景名称：${record.name}`,
+      }
+    );
+
+    setAiLoading(false);
+    if ('error' in resp) {
+      setAiError(resp.error.message);
+      return;
+    }
+    setAiSummary(resp.result.summary);
+    setAiScenarios(resp.result.scenarios || []);
   };
 
   const handleBatchDelete = () => {
@@ -1101,10 +1140,13 @@ export default function SceneManagementPage() {
     {
       title: '操作',
       key: 'action',
-      width: 150,
+      width: 220,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
+          <Button type="link" size="small" onClick={() => openAiSuggestion(record)}>
+            AI建议
+          </Button>
           <Button 
             type="link" 
             size="small" 
@@ -1147,6 +1189,7 @@ export default function SceneManagementPage() {
           <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
             <Space>
               <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增</Button>
+              <Button onClick={() => router.push('/api-testing/ai/scene-generator')}>AI 场景生成</Button>
               <Button onClick={() => message.info('导出功能暂未实现')}>导出</Button>
               <Button danger onClick={handleBatchDelete}>批量删除</Button>
             </Space>
@@ -1291,6 +1334,37 @@ export default function SceneManagementPage() {
             />
           </>
         )}
+
+        <Modal
+          title={`AI 建议 - ${aiTarget?.name || ''}`}
+          open={aiOpen}
+          onCancel={() => setAiOpen(false)}
+          footer={null}
+          width={1000}
+        >
+          {aiLoading ? <Alert type="info" message="AI 正在生成，请稍候..." showIcon /> : null}
+          {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
+          {aiSummary ? <div style={{ marginTop: 12, marginBottom: 12 }}>{aiSummary}</div> : null}
+          {aiScenarios.length ? (
+            <Table
+              rowKey={(r) => `${r.category}-${r.name}`}
+              columns={[
+                { title: '建议项', dataIndex: 'name', width: 240, ellipsis: true },
+                { title: '类别', dataIndex: 'category', width: 120 },
+                { title: '请求示例', dataIndex: 'requestExample', ellipsis: true },
+                {
+                  title: '断言建议',
+                  dataIndex: 'assertions',
+                  render: (v: string[] | undefined) => (v?.length ? v.join('；') : '-'),
+                  ellipsis: true,
+                },
+                { title: '备注', dataIndex: 'notes', ellipsis: true },
+              ]}
+              dataSource={aiScenarios}
+              pagination={{ pageSize: 8 }}
+            />
+          ) : null}
+        </Modal>
       </div>
     </MainLayout>
   );
