@@ -34,6 +34,30 @@ import type { ColumnsType } from 'antd/es/table';
 import messageStore, { MessageType, InterfaceType, HeaderConfig } from '@/stores/messageStore';
 import { postJson } from '@/lib/ai/client';
 
+const headerTemplates = [
+  { label: 'JSON', value: 'json', headers: [{ key: 'Content-Type', value: 'application/json' }] },
+  { label: 'XML', value: 'xml', headers: [{ key: 'Content-Type', value: 'application/xml' }] },
+  { label: 'Form', value: 'form', headers: [{ key: 'Content-Type', value: 'application/x-www-form-urlencoded' }] },
+  { label: 'JWT认证', value: 'jwt', headers: [{ key: 'Authorization', value: 'Bearer <token>' }] },
+  { 
+    label: '模拟PC浏览器', 
+    value: 'browser_pc', 
+    headers: [
+      { key: 'User-Agent', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      { key: 'Accept', value: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' },
+      { key: 'Accept-Language', value: 'zh-CN,zh;q=0.9,en;q=0.8' }
+    ] 
+  },
+  { 
+    label: '模拟手机浏览器', 
+    value: 'browser_mobile', 
+    headers: [
+      { key: 'User-Agent', value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' },
+      { key: 'Accept', value: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' }
+    ] 
+  },
+];
+
 // --- Sub-Components ---
 
 // 1. Select Interface Modal
@@ -51,35 +75,53 @@ const SelectInterfaceModal: React.FC<SelectInterfaceModalProps> = ({
   interfaces,
 }) => {
   const [searchText, setSearchText] = useState('');
+  const [selectedRecord, setSelectedRecord] = useState<InterfaceType | null>(null);
   
+  React.useEffect(() => {
+    if (open) {
+      setSelectedRecord(null);
+      setSearchText('');
+    }
+  }, [open]);
+
   const filteredData = interfaces.filter(item => 
     item.name.toLowerCase().includes(searchText.toLowerCase()) ||
     item.name_cn.includes(searchText)
   );
 
   const columns: ColumnsType<InterfaceType> = [
-    { title: '接口ID', dataIndex: 'id', width: 80 },
-    { title: '接口英文名', dataIndex: 'name', width: 180 },
-    { title: '接口中文名', dataIndex: 'name_cn', width: 180 },
-    { title: '请求路径', dataIndex: 'path', width: 200 },
-    { title: '接口类型', dataIndex: 'type', width: 100 },
-    { title: '接口协议', dataIndex: 'protocol', width: 100 },
+    { title: '接口ID', dataIndex: 'id', width: 80, align: 'center', fixed: 'left' },
+    { title: '接口英文名', dataIndex: 'name', width: 200, ellipsis: true },
+    { title: '接口中文名', dataIndex: 'name_cn', width: 200, ellipsis: true },
+    { title: '请求路径', dataIndex: 'path', width: 300, ellipsis: true },
+    { title: '接口类型', dataIndex: 'type', width: 100, align: 'center' },
+    { title: '接口协议', dataIndex: 'protocol', width: 100, align: 'center' },
     { 
       title: '状态', 
       dataIndex: 'status', 
-      width: 80,
+      width: 100,
+      align: 'center',
       render: (status) => <Tag color={status === 'active' ? 'blue' : 'red'}>{status === 'active' ? '有效' : '无效'}</Tag>
     },
-    { title: '所属项目', dataIndex: 'projectName', width: 150 },
+    { title: '所属项目', dataIndex: 'projectName', width: 150, ellipsis: true },
   ];
+
+  const handleOk = () => {
+    if (!selectedRecord) {
+      message.warning('请先选择一个接口');
+      return;
+    }
+    onSelect(selectedRecord);
+    onCancel();
+  };
 
   return (
     <Modal
       title="请选择接口"
       open={open}
       onCancel={onCancel}
-      width={1000}
-      footer={null}
+      onOk={handleOk}
+      width={1200}
     >
       <Space style={{ marginBottom: 16 }}>
         <Input 
@@ -95,13 +137,15 @@ const SelectInterfaceModal: React.FC<SelectInterfaceModalProps> = ({
         columns={columns}
         dataSource={filteredData}
         pagination={{ pageSize: 5 }}
+        scroll={{ x: 1300 }}
         rowSelection={{
           type: 'radio',
-          onSelect: (record) => {
-            onSelect(record);
-            onCancel();
-          },
+          selectedRowKeys: selectedRecord ? [selectedRecord.id] : [],
+          onSelect: (record) => setSelectedRecord(record),
         }}
+        onRow={(record) => ({
+          onClick: () => setSelectedRecord(record),
+        })}
       />
     </Modal>
   );
@@ -293,6 +337,7 @@ export default function MessageManagementPage() {
 
   // Search logic
   const [filteredMessages, setFilteredMessages] = useState<MessageType[]>(messages);
+  const [selectedInterface, setSelectedInterface] = useState<InterfaceType | null>(null);
   
   React.useEffect(() => {
     setFilteredMessages(messages);
@@ -321,6 +366,7 @@ export default function MessageManagementPage() {
     form.resetFields();
     setCurrentHeaderConfig(undefined);
     setCurrentNodeIds([]);
+    setSelectedInterface(null);
     setIsModalOpen(true);
   };
 
@@ -330,6 +376,10 @@ export default function MessageManagementPage() {
     form.setFieldsValue(record);
     setCurrentHeaderConfig(record.headerConfig);
     setCurrentNodeIds(record.nodeIds || []);
+    
+    const iface = interfaces.find(i => i.id === record.interfaceId);
+    setSelectedInterface(iface || null);
+    
     setIsModalOpen(true);
   };
 
@@ -348,7 +398,10 @@ export default function MessageManagementPage() {
       const values = await form.validateFields();
       const payload = {
         ...values,
-        headerConfig: currentHeaderConfig,
+        headerConfig: {
+          ...currentHeaderConfig,
+          ...values.headerConfig,
+        },
         nodeIds: currentNodeIds,
       };
 
@@ -382,7 +435,7 @@ export default function MessageManagementPage() {
       {
         goal: '只生成一个可直接使用的请求示例（尽量为 JSON），用于该接口的入参报文。',
         interfaceName: interfaceName || '',
-        method: currentHeaderConfig?.method || '',
+        method: currentHeaderConfig?.method || selectedInterface?.method || '',
         path: requestPath || '',
         params: { messageType: type || '' },
         context: currentNodeIds.length ? `已选择节点：${currentNodeIds.join(',')}` : '',
@@ -496,7 +549,7 @@ export default function MessageManagementPage() {
               </Select>
             </Form.Item>
 
-            <Form.Item label="所属接口" required>
+            <Form.Item label="所属接口" required style={{ marginBottom: 0 }}>
               <Space>
                 <Form.Item 
                   name="interfaceName" 
@@ -512,11 +565,72 @@ export default function MessageManagementPage() {
               <Form.Item name="projectName" hidden><Input /></Form.Item>
             </Form.Item>
 
+            {selectedInterface && (
+               <div style={{ marginLeft: '21%', marginBottom: 24, padding: 12, background: '#f5f5f5', borderRadius: 4 }}>
+                 <Descriptions size="small" column={1}>
+                   <Descriptions.Item label="请求方式"><Tag color="blue">{selectedInterface.method || 'GET'}</Tag></Descriptions.Item>
+                   <Descriptions.Item label="Query参数">
+                     {selectedInterface.queryParams?.map((p, idx) => (
+                       <div key={idx}><Tag>{p.name}</Tag> {p.required ? <span style={{color:'red'}}>*</span> : ''} <span style={{color:'#999'}}>{p.desc}</span></div>
+                     )) || '无'}
+                   </Descriptions.Item>
+                   <Descriptions.Item label="Body参数">
+                     {selectedInterface.body ? <pre style={{maxHeight: 100, overflow: 'auto', fontSize: 12}}>{selectedInterface.body}</pre> : '无'}
+                   </Descriptions.Item>
+                 </Descriptions>
+               </div>
+            )}
+
             <Form.Item label="报文头参数配置">
-              <Space>
-                <Button onClick={() => setHeaderConfigModalOpen(true)}>配置</Button>
-                <Button>模板</Button>
-              </Space>
+               <Space style={{ marginBottom: 8 }}>
+                 <span>模版：</span>
+                 <Select 
+                    style={{ width: 180 }} 
+                    placeholder="选择模版"
+                   onChange={(value) => {
+                     const template = headerTemplates.find(t => t.value === value);
+                     if (template) {
+                       const currentHeaders = form.getFieldValue(['headerConfig', 'headers']) || [];
+                       form.setFieldValue(['headerConfig', 'headers'], [...currentHeaders, ...template.headers]);
+                     }
+                   }}
+                 >
+                   {headerTemplates.map(t => <Select.Option key={t.value} value={t.value}>{t.label}</Select.Option>)}
+                 </Select>
+               </Space>
+               
+               <Form.List name={['headerConfig', 'headers']}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => (
+                      <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'key']}
+                          rules={[{ required: true, message: 'Key' }]}
+                          noStyle
+                        >
+                          <Input placeholder="Key" style={{ width: 150 }} />
+                        </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'value']}
+                          rules={[{ required: true, message: 'Value' }]}
+                          noStyle
+                        >
+                          <Input placeholder="Value" style={{ width: 250 }} />
+                        </Form.Item>
+                        <DeleteOutlined onClick={() => remove(name)} />
+                      </Space>
+                    ))}
+                    <Form.Item>
+                      <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                        添加 Header
+                      </Button>
+                    </Form.Item>
+                  </>
+                )}
+              </Form.List>
             </Form.Item>
 
             <Form.Item name="requestPath" label="请求路径">
@@ -566,6 +680,7 @@ export default function MessageManagementPage() {
           onCancel={() => setInterfaceModalOpen(false)}
           interfaces={interfaces}
           onSelect={(record) => {
+            setSelectedInterface(record);
             form.setFieldsValue({
               interfaceId: record.id,
               interfaceName: record.name_cn || record.name,

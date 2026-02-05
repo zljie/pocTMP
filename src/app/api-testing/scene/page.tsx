@@ -31,6 +31,7 @@ import {
   PlayCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import sceneStore, { SceneType, SceneTestData, ValidationRule } from '@/stores/sceneStore';
@@ -38,6 +39,7 @@ import messageStore, { MessageType } from '@/stores/messageStore';
 import apiTestEnvironmentStore from '@/stores/apiTestEnvironmentStore';
 import { postJson } from '@/lib/ai/client';
 import { useRouter } from 'next/navigation';
+import { CreateSceneModalV2 } from './components/CreateSceneModalV2';
 
 // --- Sub-Components ---
 
@@ -950,6 +952,7 @@ export default function SceneManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('新增');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isV2ModalOpen, setIsV2ModalOpen] = useState(false);
   
   // Sub-modal states
   const [messageModalOpen, setMessageModalOpen] = useState(false);
@@ -1189,6 +1192,7 @@ export default function SceneManagementPage() {
           <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
             <Space>
               <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增</Button>
+              <Button type="dashed" icon={<RocketOutlined />} onClick={() => setIsV2ModalOpen(true)}>新增 (V2 体验版)</Button>
               <Button onClick={() => router.push('/api-testing/ai/scene-generator')}>AI 场景生成</Button>
               <Button onClick={() => message.info('导出功能暂未实现')}>导出</Button>
               <Button danger onClick={handleBatchDelete}>批量删除</Button>
@@ -1365,6 +1369,16 @@ export default function SceneManagementPage() {
             />
           ) : null}
         </Modal>
+
+        <CreateSceneModalV2
+          open={isV2ModalOpen}
+          onCancel={() => setIsV2ModalOpen(false)}
+          onOk={(values) => {
+            console.log('V2 Submit:', values);
+            message.success('V2 版本仅做展示，暂未对接后端接口');
+            setIsV2ModalOpen(false);
+          }}
+        />
       </div>
     </MainLayout>
   );

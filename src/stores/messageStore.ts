@@ -47,6 +47,9 @@ export interface InterfaceType {
   status: 'active' | 'inactive';
   remark?: string;
   projectName: string;
+  method?: string;
+  queryParams?: Array<{ name: string; required: boolean; desc?: string }>;
+  body?: string;
 }
 
 const nowText = () => dayjs().format('YYYY-MM-DD HH:mm:ss');
@@ -67,6 +70,9 @@ export const initialInterfaces: InterfaceType[] = [
     protocol: 'HTTP',
     status: 'active',
     projectName: '基础资料平台(mdm)',
+    method: 'POST',
+    queryParams: [{ name: 'userId', required: true, desc: '用户ID' }],
+    body: '{"key": "value"}',
   },
   {
     id: '10',
@@ -77,6 +83,8 @@ export const initialInterfaces: InterfaceType[] = [
     protocol: 'active',
     status: 'active',
     projectName: '基础资料平台(mdm)',
+    method: 'GET',
+    queryParams: [{ name: 'entryId', required: true, desc: '入口ID' }],
   },
   {
     id: '11',
@@ -87,6 +95,8 @@ export const initialInterfaces: InterfaceType[] = [
     protocol: 'HTTP',
     status: 'active',
     projectName: '基础资料平台(mdm)',
+    method: 'POST',
+    body: '{"username": "", "password": ""}',
   },
   {
     id: '12',
@@ -97,6 +107,7 @@ export const initialInterfaces: InterfaceType[] = [
     protocol: 'HTTP',
     status: 'active',
     projectName: '基础资料平台(mdm)',
+    method: 'POST',
   },
   {
     id: '13',
@@ -107,6 +118,7 @@ export const initialInterfaces: InterfaceType[] = [
     protocol: 'HTTP',
     status: 'active',
     projectName: '基础资料平台(mdm)',
+    method: 'GET',
   }
 ];
 
