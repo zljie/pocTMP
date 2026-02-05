@@ -16,11 +16,14 @@ import {
   Upload,
   Switch,
   Alert,
+  Radio,
+  Tabs,
 } from 'antd';
 import {
   UploadOutlined,
   PlusOutlined,
   DeleteOutlined,
+  MinusCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps, UploadFile } from 'antd';
@@ -48,10 +51,12 @@ interface InterfaceType {
   key: string;
   name: string; // 接口英文名
   name_cn: string; // 接口中文名
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE'; // HTTP方法
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'WebSocket' | 'SSE' | 'Socket.IO' | 'MQTT'; // HTTP方法 + Realtime
   path: string; // 请求路径
   protocol: 'HTTP' | 'HTTPS'; // 协议
   status: 'active' | 'inactive'; // 状态
+  type: 'REST' | 'GraphQL' | 'Realtime'; // 接口类型
+  contentType?: string; // Content-Type
   parameterCount: number; // 参数个数
   remark: string; // 备注
   projectId: string; // 所属项目ID
@@ -64,7 +69,7 @@ interface InterfaceParamType {
   interfaceId: string;
   identifier: string; // 标识
   name: string; // 名称
-  paramIn: 'path' | 'body'; // 参数位置 (移除了 query 和 header)
+  paramIn: 'path' | 'body' | 'query' | 'header'; // 参数位置
   required: boolean; // 是否必填
   defaultValue: string; // 默认值
   path: string; // 路径
@@ -80,11 +85,15 @@ const mockProjects = [
 ];
 
 // 颜色映射
-const methodColorMap = {
+const methodColorMap: Record<string, string> = {
   GET: 'blue',
   POST: 'green',
   PUT: 'orange',
   DELETE: 'red',
+  WebSocket: 'purple',
+  SSE: 'cyan',
+  'Socket.IO': 'geekblue',
+  MQTT: 'magenta',
 };
 
 // 模拟接口数据
@@ -98,6 +107,7 @@ const initialData: InterfaceType[] = [
     path: '/FlatDataService/query...',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 3,
     remark: '',
     projectId: 'p1',
@@ -112,6 +122,7 @@ const initialData: InterfaceType[] = [
     path: '/FlatDataService/query...',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 3,
     remark: '',
     projectId: 'p1',
@@ -126,6 +137,7 @@ const initialData: InterfaceType[] = [
     path: '/authsso/login',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 3,
     remark: '',
     projectId: 'p2',
@@ -140,6 +152,7 @@ const initialData: InterfaceType[] = [
     path: '/authsso/decryption...',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 3,
     remark: '',
     projectId: 'p2',
@@ -154,6 +167,7 @@ const initialData: InterfaceType[] = [
     path: '/FlatDataService/query...',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 2,
     remark: '',
     projectId: 'p1',
@@ -168,6 +182,7 @@ const initialData: InterfaceType[] = [
     path: '/FlatDataService/query...',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 3,
     remark: '',
     projectId: 'p1',
@@ -182,6 +197,7 @@ const initialData: InterfaceType[] = [
     path: '/userService/queryU...',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 3,
     remark: '',
     projectId: 'p2',
@@ -196,6 +212,7 @@ const initialData: InterfaceType[] = [
     path: '/authsso/logout',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 1,
     remark: '',
     projectId: 'p2',
@@ -210,6 +227,7 @@ const initialData: InterfaceType[] = [
     path: '/authsso/login',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 1,
     remark: '',
     projectId: 'p2',
@@ -224,6 +242,7 @@ const initialData: InterfaceType[] = [
     path: '/atmngplat/#/login',
     protocol: 'HTTP',
     status: 'active',
+    type: 'REST',
     parameterCount: 1,
     remark: '',
     projectId: 'p3',
@@ -240,6 +259,8 @@ const initialParams: InterfaceParamType[] = [
 
 export default function InterfaceManagementPage() {
   const [form] = Form.useForm();
+  const method = Form.useWatch('method', form);
+  const interfaceType = Form.useWatch('type', form);
   const [searchForm] = Form.useForm();
   const [importForm] = Form.useForm();
   
@@ -403,14 +424,32 @@ export default function InterfaceManagementPage() {
     setModalTitle('新增');
     setEditingId(null);
     form.resetFields();
+    // 默认值
+    form.setFieldsValue({
+      status: 'active',
+      method: 'GET',
+      protocol: 'HTTP',
+      type: 'REST',
+      contentType: 'application/json',
+      queryParams: [],
+      bodyParams: [],
+      headerParams: [],
+      pathParams: [],
+    });
     setIsModalOpen(true);
   };
 
   const handleEdit = (record: InterfaceType) => {
     setModalTitle('修改');
     setEditingId(record.id);
+    // 获取关联参数
+    const interfaceParams = params.filter(p => p.interfaceId === record.id);
     form.setFieldsValue({
       ...record,
+      queryParams: interfaceParams.filter(p => p.paramIn === 'query'),
+      bodyParams: interfaceParams.filter(p => p.paramIn === 'body'),
+      headerParams: interfaceParams.filter(p => p.paramIn === 'header'),
+      pathParams: interfaceParams.filter(p => p.paramIn === 'path'),
     });
     setIsModalOpen(true);
   };
@@ -440,27 +479,64 @@ export default function InterfaceManagementPage() {
     form.validateFields().then((values) => {
       setLoading(true);
       setTimeout(() => {
+        const { queryParams, bodyParams, headerParams, pathParams, ...interfaceValues } = values;
+        
+        // 合并参数
+        const formParams = [
+            ...(queryParams || []).map((p: any) => ({ ...p, paramIn: 'query' })),
+            ...(bodyParams || []).map((p: any) => ({ ...p, paramIn: 'body' })),
+            ...(headerParams || []).map((p: any) => ({ ...p, paramIn: 'header' })),
+            ...(pathParams || []).map((p: any) => ({ ...p, paramIn: 'path' })),
+        ];
+
         // 获取项目名称
-        const project = mockProjects.find(p => p.value === values.projectId);
+        const project = mockProjects.find(p => p.value === interfaceValues.projectId);
         const projectName = project ? project.label : '';
+        
+        // 确定接口ID
+        let targetInterfaceId = editingId;
+        if (!targetInterfaceId) {
+          targetInterfaceId = String(Math.max(...data.map(d => Number(d.id)), 0) + 1);
+        }
+
+        // 更新参数列表
+        let newParamsList = [...params];
+        // 如果是编辑，先移除该接口旧的参数（全量替换）
+        if (editingId) {
+          newParamsList = newParamsList.filter(p => p.interfaceId !== editingId);
+        }
+        
+        // 添加表单中的参数
+        const newInterfaceParamsCount = formParams ? formParams.length : 0;
+        if (formParams && Array.isArray(formParams)) {
+           const addedParams = formParams.map((p: any, index: number) => ({
+             ...p,
+             id: p.id || `new-${Date.now()}-${index}`,
+             interfaceId: targetInterfaceId,
+             required: p.required ?? false,
+             // 确保有 identifier, 如果没有则自动生成或使用 name
+             identifier: p.identifier || p.name || `param${index}`, 
+           }));
+           newParamsList = [...newParamsList, ...addedParams];
+        }
+        setParams(newParamsList);
 
         if (editingId) {
           setData((prev) =>
             prev.map((item) =>
               item.id === editingId
-                ? { ...item, ...values, projectName }
+                ? { ...item, ...interfaceValues, projectName, parameterCount: newInterfaceParamsCount }
                 : item
             )
           );
           message.success('修改成功');
         } else {
-          const newId = String(Math.max(...data.map(d => Number(d.id)), 0) + 1);
           const newItem: InterfaceType = {
-            id: newId,
-            key: newId,
-            ...values,
+            id: targetInterfaceId!,
+            key: targetInterfaceId!,
+            ...interfaceValues,
             projectName,
-            parameterCount: 0, // 默认为0
+            parameterCount: newInterfaceParamsCount,
           };
           setData((prev) => [newItem, ...prev]);
           message.success('新增成功');
@@ -506,13 +582,62 @@ export default function InterfaceManagementPage() {
     setParamModalVisible(true);
   };
 
+  // 获取参数类型选项
+  const getParamTypeOptions = () => [
+    { label: 'String', value: 'String' },
+    { label: 'Integer', value: 'Integer' },
+    { label: 'Float', value: 'Float' },
+    { label: 'Boolean', value: 'Boolean' },
+    { label: 'Datetime', value: 'Datetime' },
+    { label: 'Object', value: 'Object' },
+    { label: 'Array', value: 'Array' },
+    { label: 'File', value: 'File' },
+  ];
+
+  // Content-Type 选项
+  const contentTypeOptions = [
+    {
+      label: 'Text',
+      options: [
+        { label: 'application/json', value: 'application/json' },
+        { label: 'application/ld+json', value: 'application/ld+json' },
+        { label: 'application/hal+json', value: 'application/hal+json' },
+        { label: 'application/vnd.api+json', value: 'application/vnd.api+json' },
+        { label: 'application/xml', value: 'application/xml' },
+        { label: 'text/xml', value: 'text/xml' },
+      ],
+    },
+    {
+      label: 'Structured',
+      options: [
+        { label: 'application/x-www-form-urlencoded', value: 'application/x-www-form-urlencoded' },
+        { label: 'multipart/form-data', value: 'multipart/form-data' },
+      ],
+    },
+    {
+      label: 'Binary',
+      options: [
+        { label: 'application/octet-stream', value: 'application/octet-stream' },
+      ],
+    },
+    {
+      label: 'Others',
+      options: [
+        { label: 'text/html', value: 'text/html' },
+        { label: 'text/plain', value: 'text/plain' },
+      ],
+    },
+  ];
+
   // 获取动态参数位置选项
   const getParamInOptions = (method?: string) => {
     const options = [
       { label: '路径参数 (Path)', value: 'path' },
+      { label: 'Query 参数', value: 'query' },
+      { label: '请求头 (Header)', value: 'header' },
     ];
     
-    // 只有 POST/PUT 支持 Body 参数
+    // POST/PUT 支持 Body 参数
     if (method === 'POST' || method === 'PUT') {
       options.push({ label: '请求体 (Body)', value: 'body' });
     }
@@ -666,9 +791,9 @@ export default function InterfaceManagementPage() {
       title: '方法',
       dataIndex: 'method',
       key: 'method',
-      width: 90,
+      width: 120,
       align: 'center',
-      render: (method: keyof typeof methodColorMap) => (
+      render: (method: string) => (
         <Tag color={methodColorMap[method] || 'default'}>
           {method}
         </Tag>
@@ -946,16 +1071,42 @@ export default function InterfaceManagementPage() {
             </Form.Item>
 
             <Form.Item
+              name="type"
+              label="接口类型"
+              rules={[{ required: true, message: '请选择接口类型' }]}
+              initialValue="REST"
+            >
+               <Radio.Group>
+                  <Radio value="REST">REST</Radio>
+                  <Radio value="GraphQL">GraphQL</Radio>
+                  <Radio value="Realtime">Realtime</Radio>
+               </Radio.Group>
+            </Form.Item>
+
+            <Form.Item
               name="method"
               label="请求方法"
               rules={[{ required: true, message: '请选择请求方法' }]}
             >
-              <Select placeholder="选择" options={[
-                { label: 'GET', value: 'GET' },
-                { label: 'POST', value: 'POST' },
-                { label: 'PUT', value: 'PUT' },
-                { label: 'DELETE', value: 'DELETE' },
-              ]} />
+              <Select placeholder="选择" options={
+                  interfaceType === 'Realtime' 
+                  ? [
+                      { label: 'WebSocket', value: 'WebSocket' },
+                      { label: 'SSE', value: 'SSE' },
+                      { label: 'Socket.IO', value: 'Socket.IO' },
+                      { label: 'MQTT', value: 'MQTT' },
+                    ]
+                  : interfaceType === 'GraphQL'
+                    ? [
+                        { label: 'POST', value: 'POST' },
+                      ]
+                    : [
+                        { label: 'GET', value: 'GET' },
+                        { label: 'POST', value: 'POST' },
+                        { label: 'PUT', value: 'PUT' },
+                        { label: 'DELETE', value: 'DELETE' },
+                      ]
+              } />
             </Form.Item>
 
             <Form.Item
@@ -971,10 +1122,10 @@ export default function InterfaceManagementPage() {
               label="接口协议"
               rules={[{ required: true, message: '请选择接口协议' }]}
             >
-              <Select placeholder="选择" options={[
-                { label: 'HTTP协议', value: 'HTTP' },
-                { label: 'HTTPS协议', value: 'HTTPS' },
-              ]} />
+               <Radio.Group>
+                  <Radio value="HTTP">HTTP</Radio>
+                  <Radio value="HTTPS">HTTPS</Radio>
+               </Radio.Group>
             </Form.Item>
 
             <Form.Item
@@ -992,6 +1143,123 @@ export default function InterfaceManagementPage() {
             <Form.Item name="remark" label="备注">
               <Input.TextArea placeholder="备注" rows={3} />
             </Form.Item>
+
+            <div style={{ marginTop: 24 }}>
+                <Tabs type="card" items={[
+                    {
+                        key: 'query',
+                        label: 'Query Parameters',
+                        children: (
+                            <Form.List name="queryParams">
+                                {(fields, { add, remove }) => (
+                                    <>
+                                        {fields.map(({ key, name, ...restField }) => (
+                                            <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                <Form.Item {...restField} name={[name, 'identifier']} rules={[{ required: true, message: '必填' }]} noStyle>
+                                                    <Input placeholder="Key" style={{ width: 120 }} />
+                                                </Form.Item>
+                                                <Form.Item {...restField} name={[name, 'name']} noStyle>
+                                                    <Input placeholder="中文名" style={{ width: 120 }} />
+                                                </Form.Item>
+                                                <Form.Item {...restField} name={[name, 'required']} valuePropName="checked" noStyle initialValue={true}>
+                                                    <Switch size="small" checkedChildren="必" unCheckedChildren="选" />
+                                                </Form.Item>
+                                                <Form.Item {...restField} name={[name, 'remark']} noStyle>
+                                                    <Input placeholder="备注" style={{ width: 150 }} />
+                                                </Form.Item>
+                                                <MinusCircleOutlined onClick={() => remove(name)} />
+                                            </Space>
+                                        ))}
+                                        <Form.Item>
+                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                添加 Query 参数
+                                            </Button>
+                                        </Form.Item>
+                                    </>
+                                )}
+                            </Form.List>
+                        )
+                    },
+                    (method === 'POST' || method === 'PUT') ? {
+                        key: 'body',
+                        label: 'Body (Form)',
+                        children: (
+                            <>
+                                <Form.Item
+                                  name="contentType"
+                                  label="Content-Type"
+                                  labelCol={{ span: 5 }}
+                                  wrapperCol={{ span: 19 }}
+                                  style={{ marginBottom: 12 }}
+                                >
+                                  <Select 
+                                    placeholder="Select Content-Type" 
+                                    options={contentTypeOptions} 
+                                    showSearch
+                                    allowClear
+                                  />
+                                </Form.Item>
+                                <Form.List name="bodyParams">
+                                {(fields, { add, remove }) => (
+                                    <>
+                                        {fields.map(({ key, name, ...restField }) => (
+                                            <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                <Form.Item {...restField} name={[name, 'identifier']} rules={[{ required: true, message: '必填' }]} noStyle>
+                                                    <Input placeholder="Key" style={{ width: 120 }} />
+                                                </Form.Item>
+                                                <Form.Item {...restField} name={[name, 'type']} initialValue="String" noStyle>
+                                                    <Select style={{ width: 100 }} options={getParamTypeOptions()} />
+                                                </Form.Item>
+                                                <Form.Item {...restField} name={[name, 'required']} valuePropName="checked" noStyle initialValue={true}>
+                                                    <Switch size="small" checkedChildren="必" unCheckedChildren="选" />
+                                                </Form.Item>
+                                                <Form.Item {...restField} name={[name, 'remark']} noStyle>
+                                                    <Input placeholder="备注" style={{ width: 150 }} />
+                                                </Form.Item>
+                                                <MinusCircleOutlined onClick={() => remove(name)} />
+                                            </Space>
+                                        ))}
+                                        <Form.Item>
+                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                添加 Body 参数
+                                            </Button>
+                                        </Form.Item>
+                                    </>
+                                )}
+                            </Form.List>
+                            </>
+                        )
+                    } : null,
+                    {
+                        key: 'header',
+                        label: 'Headers',
+                        children: (
+                            <Form.List name="headerParams">
+                                {(fields, { add, remove }) => (
+                                    <>
+                                        {fields.map(({ key, name, ...restField }) => (
+                                            <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                <Form.Item {...restField} name={[name, 'identifier']} rules={[{ required: true, message: '必填' }]} noStyle>
+                                                    <Input placeholder="Key" style={{ width: 120 }} />
+                                                </Form.Item>
+                                                <Form.Item {...restField} name={[name, 'defaultValue']} noStyle>
+                                                    <Input placeholder="Value" style={{ width: 120 }} />
+                                                </Form.Item>
+                                                <MinusCircleOutlined onClick={() => remove(name)} />
+                                            </Space>
+                                        ))}
+                                        <Form.Item>
+                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                添加 Header
+                                            </Button>
+                                        </Form.Item>
+                                    </>
+                                )}
+                            </Form.List>
+                        )
+                    }
+                ].filter(Boolean) as any} />
+            </div>
           </Form>
         </Modal>
 
@@ -1114,13 +1382,7 @@ export default function InterfaceManagementPage() {
               <Input placeholder="例如 TopRoot (Body内路径)" />
             </Form.Item>
             <Form.Item name="type" label="类型">
-               <Select placeholder="选择类型" options={[
-                 { label: 'String', value: 'String' },
-                 { label: 'Integer', value: 'Integer' },
-                 { label: 'Boolean', value: 'Boolean' },
-                 { label: 'Object', value: 'Object' },
-                 { label: 'Array', value: 'Array' },
-               ]} />
+               <Select placeholder="选择类型" options={getParamTypeOptions()} />
             </Form.Item>
             <Form.Item name="remark" label="备注">
               <Input.TextArea placeholder="备注" rows={2} />
