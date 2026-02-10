@@ -946,24 +946,25 @@ export default function SceneManagementPage() {
   const { scenes } = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot);
   const { messages } = useSyncExternalStore(messageStore.subscribe, messageStore.getSnapshot, messageStore.getServerSnapshot);
   
-  const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
   
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('新增');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isV2ModalOpen, setIsV2ModalOpen] = useState(false);
   
   // Sub-modal states
-  const [messageModalOpen, setMessageModalOpen] = useState(false);
-  const [envModalOpen, setEnvModalOpen] = useState(false);
+  // const [messageModalOpen, setMessageModalOpen] = useState(false);
+  // const [envModalOpen, setEnvModalOpen] = useState(false);
   const [testDataModalOpen, setTestDataModalOpen] = useState(false);
   const [validationRulesModalOpen, setValidationRulesModalOpen] = useState(false);
   const [executeModalOpen, setExecuteModalOpen] = useState(false);
   
   // Temp state
-  const [currentEnvIds, setCurrentEnvIds] = useState<string[]>([]);
+  // const [currentEnvIds, setCurrentEnvIds] = useState<string[]>([]);
   const [currentScene, setCurrentScene] = useState<SceneType | null>(null);
+  const [editingData, setEditingData] = useState<SceneType | null>(null);
+  const [isV2ModalOpen, setIsV2ModalOpen] = useState(false);
+  
   const [aiOpen, setAiOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -1001,22 +1002,25 @@ export default function SceneManagementPage() {
 
   // Add/Edit logic
   const handleAdd = () => {
-    setModalTitle('新增');
     setEditingId(null);
-    form.resetFields();
-    setCurrentEnvIds([]);
-    setIsModalOpen(true);
+    setEditingData(null);
+    setIsV2ModalOpen(true);
   };
 
   const handleEdit = (record: SceneType) => {
-    setModalTitle('修改');
     setEditingId(record.id);
-    form.setFieldsValue({
-      ...record,
-      environmentDisplay: record.environmentIds.join(', '), 
-    });
-    setCurrentEnvIds(record.environmentIds);
-    setIsModalOpen(true);
+    
+    // Map record to V2 form data structure
+    // Since V2 has more fields than SceneType, we map available ones
+    // and assume stored json/string fields might contain the rest if implemented fully
+    const formData = {
+        ...record,
+        url: record.requestPath, // Map requestPath to url
+        // Map other fields if necessary
+    };
+    
+    setEditingData(formData);
+    setIsV2ModalOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -1057,27 +1061,32 @@ export default function SceneManagementPage() {
     message.info('批量删除功能暂未实现');
   };
 
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields();
-      const payload = {
-        ...values,
-        environmentIds: currentEnvIds,
-      };
-      
-      delete payload.environmentDisplay;
+  const handleV2ModalOk = (values: any) => {
+    // Transform V2 values back to SceneType (core fields)
+    const payload = {
+        name: values.name,
+        messageId: values.messageId,
+        messageName: values.messageId ? 'Linked Message' : '', // Placeholder
+        interfaceId: values.interfaceId,
+        interfaceName: values.interfaceId ? 'Linked Interface' : '', // Placeholder
+        projectId: values.projectName || 'p1',
+        projectName: values.projectName || '',
+        environmentIds: [], 
+        requestPath: values.url,
+        remark: values.description,
+        status: 'active' as const,
+        testDataCount: 0,
+        validationRuleCount: 0,
+    };
 
-      if (editingId) {
-        sceneStore.updateScene(editingId, payload);
-        message.success('修改成功');
-      } else {
-        sceneStore.createScene(payload);
-        message.success('新增成功');
-      }
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('Validation failed:', error);
+    if (editingId) {
+      sceneStore.updateScene(editingId, payload);
+      message.success('修改成功');
+    } else {
+      sceneStore.createScene(payload);
+      message.success('新增成功');
     }
+    setIsV2ModalOpen(false);
   };
 
   // Columns
@@ -1192,7 +1201,6 @@ export default function SceneManagementPage() {
           <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
             <Space>
               <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增</Button>
-              <Button type="dashed" icon={<RocketOutlined />} onClick={() => setIsV2ModalOpen(true)}>新增 (V2 体验版)</Button>
               <Button onClick={() => router.push('/api-testing/ai/scene-generator')}>AI 场景生成</Button>
               <Button onClick={() => message.info('导出功能暂未实现')}>导出</Button>
               <Button danger onClick={handleBatchDelete}>批量删除</Button>
@@ -1207,177 +1215,14 @@ export default function SceneManagementPage() {
           />
         </Card>
 
-        {/* Add/Edit Modal */}
-        <Modal
-          title={modalTitle}
-          open={isModalOpen}
-          onOk={handleModalOk}
-          onCancel={() => setIsModalOpen(false)}
-          width={800}
-          forceRender
-        >
-          <Form form={form} layout="horizontal" labelCol={{ span: 5 }} wrapperCol={{ span: 18 }}>
-            <Form.Item name="projectName" label="所属项目">
-              <Input disabled placeholder="点击选择项目" />
-            </Form.Item>
-
-            <Form.Item label="报文名称" required>
-              <Space>
-                <Form.Item 
-                  name="messageName" 
-                  noStyle 
-                  rules={[{ required: true, message: '请选择报文' }]}
-                >
-                  <Input readOnly placeholder="请选择报文" style={{ width: 300 }} />
-                </Form.Item>
-                <Button type="primary" onClick={() => setMessageModalOpen(true)}>选择</Button>
-              </Space>
-              {/* Hidden fields to store related info */}
-              <Form.Item name="messageId" hidden><Input /></Form.Item>
-              <Form.Item name="interfaceId" hidden><Input /></Form.Item>
-              <Form.Item name="interfaceName" hidden><Input /></Form.Item>
-            </Form.Item>
-
-            <Form.Item name="name" label="场景名称" rules={[{ required: true, message: '请输入场景名称' }]}>
-              <Input placeholder="场景名称" />
-            </Form.Item>
-
-            <Form.Item label="所属测试环境" required>
-              <Space>
-                <Input 
-                  readOnly 
-                  placeholder="请选择测试环境" 
-                  value={currentEnvIds.join(',')} 
-                  style={{ width: 300 }} 
-                />
-                <Button type="primary" onClick={() => setEnvModalOpen(true)}>选择</Button>
-              </Space>
-            </Form.Item>
-
-            <Form.Item name="requestPath" label="请求路径" help="你可以单独给此场景设置请求路径，该路径的优先级大于接口和报文中设置的请求路径">
-              <Input placeholder="请求路径" />
-            </Form.Item>
-
-            <Form.Item name="returnExample" label="返回示例报文">
-              <Input.TextArea 
-                rows={4} 
-                placeholder="返回示例报文" 
-              />
-            </Form.Item>
-
-            <Form.Item name="status" label="当前状态" initialValue="active" rules={[{ required: true }]}>
-              <Radio.Group>
-                <Radio value="active">有效</Radio>
-                <Radio value="inactive">无效</Radio>
-              </Radio.Group>
-            </Form.Item>
-
-            <Form.Item name="remark" label="备注">
-              <Input placeholder="备注" />
-            </Form.Item>
-          </Form>
-        </Modal>
-
-        {/* Sub Modals */}
-        <SelectMessageModal
-          open={messageModalOpen}
-          onCancel={() => setMessageModalOpen(false)}
-          messages={messages}
-          onSelect={(record) => {
-            form.setFieldsValue({
-              messageId: record.id,
-              messageName: record.name,
-              interfaceId: record.interfaceId,
-              interfaceName: record.interfaceName,
-              projectName: record.projectName,
-              requestPath: record.requestPath || '', // Pre-fill path if available
-            });
-          }}
-        />
-
-        <SelectEnvironmentModal
-          open={envModalOpen}
-          onCancel={() => setEnvModalOpen(false)}
-          onOk={(ids) => {
-            setCurrentEnvIds(ids);
-            setEnvModalOpen(false);
-          }}
-          initialValues={currentEnvIds}
-        />
-        
-        <ExecuteSceneModal
-          open={executeModalOpen}
-          onCancel={() => {
-            setExecuteModalOpen(false);
-            setCurrentScene(null);
-          }}
-          scene={currentScene}
-        />
-
-        {currentScene && (
-          <>
-            <TestDataModal
-              open={testDataModalOpen}
-              onCancel={() => {
-                setTestDataModalOpen(false);
-                setCurrentScene(null);
-              }}
-              sceneName={currentScene.name}
-              sceneId={currentScene.id}
-              dataList={currentScene.testDataList || []}
-            />
-            <ValidationRulesModal
-              open={validationRulesModalOpen}
-              onCancel={() => {
-                setValidationRulesModalOpen(false);
-                setCurrentScene(null);
-              }}
-              sceneName={currentScene.name}
-              sceneId={currentScene.id}
-              rulesList={currentScene.validationRules || []}
-            />
-          </>
-        )}
-
-        <Modal
-          title={`AI 建议 - ${aiTarget?.name || ''}`}
-          open={aiOpen}
-          onCancel={() => setAiOpen(false)}
-          footer={null}
-          width={1000}
-        >
-          {aiLoading ? <Alert type="info" message="AI 正在生成，请稍候..." showIcon /> : null}
-          {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
-          {aiSummary ? <div style={{ marginTop: 12, marginBottom: 12 }}>{aiSummary}</div> : null}
-          {aiScenarios.length ? (
-            <Table
-              rowKey={(r) => `${r.category}-${r.name}`}
-              columns={[
-                { title: '建议项', dataIndex: 'name', width: 240, ellipsis: true },
-                { title: '类别', dataIndex: 'category', width: 120 },
-                { title: '请求示例', dataIndex: 'requestExample', ellipsis: true },
-                {
-                  title: '断言建议',
-                  dataIndex: 'assertions',
-                  render: (v: string[] | undefined) => (v?.length ? v.join('；') : '-'),
-                  ellipsis: true,
-                },
-                { title: '备注', dataIndex: 'notes', ellipsis: true },
-              ]}
-              dataSource={aiScenarios}
-              pagination={{ pageSize: 8 }}
-            />
-          ) : null}
-        </Modal>
+        {/* Add/Edit Modal (Replaced by V2 Drawer) */}
+        {/* <Modal ... /> Removed */}
 
         <CreateSceneModalV2
           open={isV2ModalOpen}
           onCancel={() => setIsV2ModalOpen(false)}
-          onOk={(values) => {
-            console.log('V2 Submit:', values);
-            message.success('V2 版本仅做展示，暂未对接后端接口');
-            setIsV2ModalOpen(false);
-          }}
+          onOk={handleV2ModalOk}
+          initialValues={editingData}
         />
       </div>
     </MainLayout>

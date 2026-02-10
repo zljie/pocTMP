@@ -42,6 +42,7 @@ import combinationSceneStore, {
 } from '@/stores/combinationSceneStore';
 import sceneStore, { SceneType, SceneTestData, ValidationRule } from '@/stores/sceneStore';
 import apiTestEnvironmentStore from '@/stores/apiTestEnvironmentStore';
+import { CreateCombinationSceneDrawer } from './components/CreateCombinationSceneDrawer';
 
 const { Text } = Typography;
 
@@ -52,534 +53,7 @@ const PROJECT_OPTIONS = [
   { label: '示例项目B', value: 'p2' },
 ];
 
-// --- Sub-Component: Scene Selection Modal ---
 
-interface SceneSelectionModalProps {
-  open: boolean;
-  onCancel: () => void;
-  onSelect: (scenes: SceneType[]) => void;
-}
-
-const SceneSelectionModal: React.FC<SceneSelectionModalProps> = ({
-  open,
-  onCancel,
-  onSelect,
-}) => {
-  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot).scenes;
-  const [searchText, setSearchText] = useState('');
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [selectedScenes, setSelectedScenes] = useState<SceneType[]>([]);
-
-  const columns = [
-    { title: '场景ID', dataIndex: 'id', width: 80 },
-    { title: '场景名称', dataIndex: 'name' },
-    { title: '接口名称', dataIndex: 'interfaceName' },
-    { title: '所属项目', dataIndex: 'projectName' },
-    { title: '备注', dataIndex: 'remark', ellipsis: true },
-  ];
-
-  const filteredScenes = scenes.filter((s) =>
-    s.name.toLowerCase().includes(searchText.toLowerCase())
-  );
-
-  const handleConfirm = () => {
-    if (selectedScenes.length === 0) {
-      message.warning('请至少选择一个场景');
-      return;
-    }
-    onSelect(selectedScenes);
-    setSelectedRowKeys([]);
-    setSelectedScenes([]);
-  };
-
-  const onSelectChange = (newSelectedRowKeys: React.Key[], newSelectedRows: SceneType[]) => {
-    setSelectedRowKeys(newSelectedRowKeys);
-    setSelectedScenes(newSelectedRows);
-  };
-
-  return (
-    <Modal
-      title="选择场景"
-      open={open}
-      onCancel={onCancel}
-      width={900}
-      footer={[
-        <Button key="cancel" onClick={onCancel}>
-          取消
-        </Button>,
-        <Button key="confirm" type="primary" onClick={handleConfirm}>
-          选择确认
-        </Button>,
-      ]}
-    >
-      <div className="mb-4 flex justify-between">
-         <Space>
-            <Text type="secondary">已选择 {selectedScenes.length} 个场景</Text>
-         </Space>
-        <Input.Search
-          placeholder="搜索场景名称"
-          onSearch={setSearchText}
-          style={{ width: 300 }}
-          allowClear
-        />
-      </div>
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={filteredScenes}
-        pagination={{ pageSize: 10 }}
-        size="small"
-        rowSelection={{
-          type: 'checkbox',
-          selectedRowKeys,
-          onChange: onSelectChange,
-        }}
-        scroll={{ y: 400 }}
-      />
-    </Modal>
-  );
-};
-
-// --- Sub-Component: Scene Order Modal ---
-
-interface SceneOrderModalProps {
-  open: boolean;
-  onCancel: () => void;
-  onSave: (orderedIds: string[]) => void;
-  scenes: IncludedScene[];
-}
-
-const SceneOrderModal: React.FC<SceneOrderModalProps> = ({
-  open,
-  onCancel,
-  onSave,
-  scenes,
-}) => {
-  const [orderedScenes, setOrderedScenes] = useState<IncludedScene[]>([]);
-
-  useEffect(() => {
-    if (open) {
-      setOrderedScenes([...scenes].sort((a, b) => a.executeOrder - b.executeOrder));
-    }
-  }, [open, scenes]);
-
-  const moveRow = (index: number, direction: 'up' | 'down') => {
-    const newScenes = [...orderedScenes];
-    if (direction === 'up' && index > 0) {
-      [newScenes[index], newScenes[index - 1]] = [newScenes[index - 1], newScenes[index]];
-    } else if (direction === 'down' && index < newScenes.length - 1) {
-      [newScenes[index], newScenes[index + 1]] = [newScenes[index + 1], newScenes[index]];
-    }
-    setOrderedScenes(newScenes);
-  };
-
-  const handleSave = () => {
-    onSave(orderedScenes.map((s) => s.id));
-  };
-
-  const columns = [
-    {
-      title: '执行顺序',
-      key: 'index',
-      width: 80,
-      align: 'center' as const,
-      render: (_: any, __: any, index: number) => index + 1,
-    },
-    { title: '场景名称', dataIndex: 'sceneName' },
-    { title: '接口名称', dataIndex: 'interfaceName' },
-    { title: '备注', dataIndex: 'remark', ellipsis: true },
-    {
-      title: '操作',
-      key: 'action',
-      width: 120,
-      render: (_: any, __: any, index: number) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<ArrowUpOutlined />}
-            disabled={index === 0}
-            onClick={() => moveRow(index, 'up')}
-          >
-            上移
-          </Button>
-          <Button
-            type="text"
-            icon={<ArrowDownOutlined />}
-            disabled={index === orderedScenes.length - 1}
-            onClick={() => moveRow(index, 'down')}
-          >
-            下移
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  return (
-    <Modal
-      title="组合场景中场景执行顺序调整"
-      open={open}
-      onCancel={onCancel}
-      onOk={handleSave}
-      width={800}
-      okText="调整确认"
-    >
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={orderedScenes}
-        pagination={false}
-        size="small"
-        scroll={{ y: 400 }}
-      />
-    </Modal>
-  );
-};
-
-// --- Sub-Component: Test Data View Modal ---
-
-interface TestDataViewModalProps {
-  open: boolean;
-  onCancel: () => void;
-  sceneId: string;
-  sceneName: string;
-}
-
-const TestDataViewModal: React.FC<TestDataViewModalProps> = ({
-  open,
-  onCancel,
-  sceneId,
-  sceneName,
-}) => {
-  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot).scenes;
-  const scene = scenes.find(s => s.id === sceneId);
-  const testData = scene?.testDataList || [];
-
-  const columns = [
-    { title: '序号', key: 'index', render: (_: any, __: any, index: number) => index + 1, width: 60 },
-    { title: '测试数据ID', dataIndex: 'id', width: 100 },
-    { title: '测试数据', dataIndex: 'content', ellipsis: true },
-    { title: '描述', dataIndex: 'mark' },
-    { 
-      title: '状态', 
-      dataIndex: 'status', 
-      width: 80,
-      render: (val: string) => <Tag color="blue">{val === 'active' ? '有效' : '无效'}</Tag>
-    },
-    { 
-      title: '默认数据', 
-      dataIndex: 'isDefault', 
-      width: 100,
-      render: (val: boolean) => val ? <Tag color="green">是</Tag> : <Tag>否</Tag>
-    },
-  ];
-
-  return (
-    <Modal
-      title={`${sceneName} 的测试数据`}
-      open={open}
-      onCancel={onCancel}
-      footer={null}
-      width={800}
-    >
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={testData}
-        pagination={{ pageSize: 5 }}
-        size="small"
-      />
-    </Modal>
-  );
-};
-
-// --- Sub-Component: Validation Rule View Modal ---
-
-interface ValidationRuleViewModalProps {
-  open: boolean;
-  onCancel: () => void;
-  sceneId: string;
-  sceneName: string;
-}
-
-const ValidationRuleViewModal: React.FC<ValidationRuleViewModalProps> = ({
-  open,
-  onCancel,
-  sceneId,
-  sceneName,
-}) => {
-  const scenes = useSyncExternalStore(sceneStore.subscribe, sceneStore.getSnapshot, sceneStore.getServerSnapshot).scenes;
-  const scene = scenes.find(s => s.id === sceneId);
-  const rules = scene?.validationRules || [];
-
-  const columns = [
-    { title: '序号', key: 'index', render: (_: any, __: any, index: number) => index + 1, width: 60 },
-    { title: '验证规则ID', dataIndex: 'id', width: 100 },
-    { title: '验证方式', dataIndex: 'type', render: (val: string) => val === 'node' ? '节点验证' : '自定义验证' },
-    { title: '节点路径/关联规则', dataIndex: 'pathOrRule', ellipsis: true },
-    { title: '预期值类型', dataIndex: 'expectedType', render: (val: string) => val === 'constant' ? '常量' : '变量' },
-    { title: '比对条件', dataIndex: 'compareCondition', render: (val: string) => val || '-' },
-    { title: '预期值', dataIndex: 'expectedValue', ellipsis: true },
-    { 
-      title: '状态', 
-      dataIndex: 'status', 
-      width: 80,
-      render: (val: string) => <Tag color="blue">{val === 'active' ? '有效' : '无效'}</Tag>
-    },
-  ];
-
-  return (
-    <Modal
-      title={`${sceneName} 的验证规则`}
-      open={open}
-      onCancel={onCancel}
-      footer={null}
-      width={900}
-    >
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={rules}
-        pagination={{ pageSize: 5 }}
-        size="small"
-      />
-    </Modal>
-  );
-};
-
-// --- Sub-Component: Scene Configuration Modal ---
-
-interface SceneConfigModalProps {
-  open: boolean;
-  onCancel: () => void;
-  onSave: (config: Partial<SceneConfig>) => void;
-  initialConfig: SceneConfig;
-  sceneName: string;
-}
-
-const SceneConfigModal: React.FC<SceneConfigModalProps> = ({
-  open,
-  onCancel,
-  onSave,
-  initialConfig,
-  sceneName,
-}) => {
-  const [form] = Form.useForm();
-  const environments = useSyncExternalStore(
-    apiTestEnvironmentStore.subscribe,
-    apiTestEnvironmentStore.getSnapshot,
-    apiTestEnvironmentStore.getServerSnapshot
-  );
-
-  // Watch async status to control field visibility/validity
-  const isAsync = Form.useWatch('isAsync', form);
-
-  useEffect(() => {
-    if (open) {
-      form.setFieldsValue(initialConfig);
-    }
-  }, [open, initialConfig, form]);
-
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      onSave(values);
-    } catch (error) {
-      // Validation failed
-    }
-  };
-
-  return (
-    <Modal
-      title={`组合场景配置 - ${sceneName}`}
-      open={open}
-      onCancel={onCancel}
-      onOk={handleOk}
-      width={800}
-      okText="保存更改"
-    >
-      <Form form={form} layout="vertical" initialValues={initialConfig}>
-        <Tabs
-          defaultActiveKey="basic"
-          items={[
-            {
-              key: 'basic',
-              label: '基础配置',
-              children: (
-                <>
-                  <Form.Item name="environmentId" label="测试环境">
-                    <Select placeholder="默认所有测试环境" allowClear>
-                      {environments
-                        .filter((e) => e.status === 'active')
-                        .map((e) => (
-                          <Select.Option key={e.id} value={e.id}>
-                            {e.projectName} - {e.systemName}
-                          </Select.Option>
-                        ))}
-                    </Select>
-                  </Form.Item>
-
-                  <Form.Item name="retryCount" label="重试次数" initialValue={0}>
-                    <InputNumber min={0} style={{ width: '100%' }} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="isAsync"
-                    label="异步执行"
-                    valuePropName="checked"
-                    initialValue={false}
-                    extra="设置了异步执行，测试间隔和失败处理都将无效，且无法保存变量。"
-                  >
-                    <Switch checkedChildren="是" unCheckedChildren="否" />
-                  </Form.Item>
-
-                  {!isAsync && (
-                    <>
-                      <Form.Item
-                        name="testInterval"
-                        label="测试间隔 (毫秒)"
-                        initialValue={1000}
-                      >
-                        <InputNumber min={0} style={{ width: '100%' }} />
-                      </Form.Item>
-
-                      <Form.Item
-                        name="failureHandling"
-                        label="失败处理"
-                        initialValue="stop"
-                      >
-                        <Radio.Group>
-                          <Radio value="stop">结束测试</Radio>
-                          <Radio value="continue">执行下一个场景</Radio>
-                          <Radio value="continue_final">执行最后一个场景</Radio>
-                        </Radio.Group>
-                      </Form.Item>
-                    </>
-                  )}
-                </>
-              ),
-            },
-            {
-              key: 'replace',
-              label: '替换变量',
-              children: (
-                <Form.List name="replaceVariables">
-                  {(fields, { add, remove }) => (
-                    <>
-                      {fields.map(({ key, name, ...restField }) => (
-                        <Space
-                          key={key}
-                          style={{ display: 'flex', marginBottom: 8 }}
-                          align="baseline"
-                        >
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'variableName']}
-                            rules={[{ required: true, message: '请输入参数名称' }]}
-                          >
-                            <Input placeholder="要替换的参数名称" style={{width: 150}} />
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'targetType']}
-                            initialValue="input"
-                          >
-                            <Select style={{ width: 100 }}>
-                              <Select.Option value="input">入参节点</Select.Option>
-                              <Select.Option value="header">Headers节点</Select.Option>
-                              <Select.Option value="query">Query节点</Select.Option>
-                            </Select>
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'sourceType']}
-                            initialValue="context"
-                          >
-                            <Select style={{ width: 120 }}>
-                              <Select.Option value="context">上下文变量</Select.Option>
-                              <Select.Option value="template">模版变量</Select.Option>
-                              <Select.Option value="global">全局变量</Select.Option>
-                              <Select.Option value="constant">常量</Select.Option>
-                            </Select>
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'sourceValue']}
-                            rules={[{ required: true, message: '请输入值' }]}
-                          >
-                            <Input placeholder="变量值/名称" style={{width: 150}} />
-                          </Form.Item>
-                          <MinusCircleOutlined onClick={() => remove(name)} />
-                        </Space>
-                      ))}
-                      <Form.Item>
-                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                          添加替换变量
-                        </Button>
-                      </Form.Item>
-                    </>
-                  )}
-                </Form.List>
-              ),
-            },
-            {
-              key: 'save',
-              label: '保存变量',
-              disabled: isAsync,
-              children: (
-                <Form.List name="saveVariables">
-                  {(fields, { add, remove }) => (
-                    <>
-                      {fields.map(({ key, name, ...restField }) => (
-                        <Space
-                          key={key}
-                          style={{ display: 'flex', marginBottom: 8 }}
-                          align="baseline"
-                        >
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'variableName']}
-                            rules={[{ required: true, message: '请输入保存的变量名' }]}
-                          >
-                            <Input placeholder="要保存的变量名" style={{width: 180}} />
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'sourceType']}
-                            initialValue="output"
-                          >
-                            <Select style={{ width: 120 }}>
-                              <Select.Option value="input">入参节点</Select.Option>
-                              <Select.Option value="output">出参节点</Select.Option>
-                              <Select.Option value="response_header">Headers节点</Select.Option>
-                            </Select>
-                          </Form.Item>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'sourcePath']}
-                            rules={[{ required: true, message: '请输入节点路径' }]}
-                          >
-                            <Input placeholder="节点路径/关联规则" style={{width: 200}} />
-                          </Form.Item>
-                          <MinusCircleOutlined onClick={() => remove(name)} />
-                        </Space>
-                      ))}
-                      <Form.Item>
-                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                          添加保存变量
-                        </Button>
-                      </Form.Item>
-                    </>
-                  )}
-                </Form.List>
-              ),
-            },
-          ]}
-        />
-      </Form>
-    </Modal>
-  );
-};
 
 // --- Sub-Component: Execution Result Detail Modal ---
 
@@ -939,22 +413,14 @@ export default function CombinationScenePage() {
     combinationSceneStore.getServerSnapshot
   );
 
-  const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
   
   // States
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<CombinationSceneType | undefined>(undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   
-  // Included Scenes Modal State
-  const [includedModalOpen, setIncludedModalOpen] = useState(false);
-  const [currentCombination, setCurrentCombination] = useState<{
-    id: string;
-    name: string;
-    scenes: IncludedScene[];
-  } | null>(null);
-
   // Execution
   const [resultModalOpen, setResultModalOpen] = useState(false);
   const [executionResults, setExecutionResults] = useState<any[]>([]);
@@ -975,20 +441,14 @@ export default function CombinationScenePage() {
   // CRUD
   const handleAdd = () => {
     setEditingId(null);
-    form.resetFields();
-    // Set default values
-    form.setFieldsValue({
-      status: 'active',
-      successCondition: 'single_stats',
-      executionMode: 'independent',
-    });
-    setIsModalOpen(true);
+    setEditingData(undefined);
+    setIsDrawerOpen(true);
   };
 
   const handleEdit = (record: CombinationSceneType) => {
     setEditingId(record.id);
-    form.setFieldsValue(record);
-    setIsModalOpen(true);
+    setEditingData(record);
+    setIsDrawerOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -1044,9 +504,8 @@ export default function CombinationScenePage() {
     });
   };
 
-  const handleModalOk = async () => {
+  const handleDrawerOk = (values: any) => {
     try {
-      const values = await form.validateFields();
       if (editingId) {
         combinationSceneStore.update(editingId, values);
         message.success('更新成功');
@@ -1054,20 +513,10 @@ export default function CombinationScenePage() {
         combinationSceneStore.create(values);
         message.success('创建成功');
       }
-      setIsModalOpen(false);
+      setIsDrawerOpen(false);
     } catch (error) {
-      // Validation error
+      console.error(error);
     }
-  };
-
-  // Open Included Scenes
-  const handleOpenIncludedScenes = (record: CombinationSceneType) => {
-    setCurrentCombination({
-      id: record.id,
-      name: record.name,
-      scenes: record.includedScenes,
-    });
-    setIncludedModalOpen(true);
   };
 
   // Execution Mock
@@ -1138,7 +587,7 @@ export default function CombinationScenePage() {
       width: 120,
       align: 'center' as const,
       render: (scenes: IncludedScene[], record: CombinationSceneType) => (
-        <a onClick={() => handleOpenIncludedScenes(record)}>
+        <a onClick={() => handleEdit(record)}>
           <Tag color="geekblue" style={{ cursor: 'pointer' }}>
             {scenes.length}
           </Tag>
@@ -1285,110 +734,12 @@ export default function CombinationScenePage() {
           />
         </Card>
 
-        {/* Add/Edit Modal */}
-        <Modal
-          title={editingId ? '修改组合场景' : '新增组合场景'}
-          open={isModalOpen}
-          onOk={handleModalOk}
-          onCancel={() => setIsModalOpen(false)}
-          width={700}
-        >
-          <Form
-            form={form}
-            layout="horizontal"
-            labelCol={{ span: 6 }}
-            wrapperCol={{ span: 16 }}
-          >
-            <Form.Item
-              name="projectId"
-              label="所属项目"
-              rules={[{ required: true, message: '请选择所属项目' }]}
-            >
-              <Select placeholder="点击选择项目">
-                {PROJECT_OPTIONS.map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            {/* Hidden field to sync project name */}
-            <Form.Item
-              noStyle
-              shouldUpdate={(prev, curr) => prev.projectId !== curr.projectId}
-            >
-              {({ getFieldValue, setFieldsValue }) => {
-                const pid = getFieldValue('projectId');
-                const pname = PROJECT_OPTIONS.find((p) => p.value === pid)?.label;
-                if (pname) {
-                  setFieldsValue({ projectName: pname });
-                }
-                return (
-                  <Form.Item name="projectName" hidden>
-                    <Input />
-                  </Form.Item>
-                );
-              }}
-            </Form.Item>
-
-            <Form.Item
-              name="name"
-              label="组合场景名称"
-              rules={[{ required: true, message: '请输入组合场景名称' }]}
-            >
-              <Input placeholder="组合场景名称" />
-            </Form.Item>
-
-            <Form.Item
-              name="successCondition"
-              label="成功条件"
-              rules={[{ required: true }]}
-            >
-              <Radio.Group>
-                <Radio value="all_pass">全部场景测试通过</Radio>
-                <Radio value="single_stats">单独统计各场景测试结果</Radio>
-              </Radio.Group>
-            </Form.Item>
-
-            <Form.Item
-              name="executionMode"
-              label="运行方式"
-              rules={[{ required: true }]}
-            >
-              <Radio.Group>
-                <Radio value="independent">使用独立客户端</Radio>
-                <Radio value="shared">使用共享客户端</Radio>
-              </Radio.Group>
-            </Form.Item>
-
-            <Form.Item name="status" label="当前状态" rules={[{ required: true }]}>
-              <Radio.Group>
-                <Radio value="active">有效</Radio>
-                <Radio value="inactive">无效</Radio>
-              </Radio.Group>
-            </Form.Item>
-
-            <Form.Item name="remark" label="备注">
-              <Input.TextArea placeholder="备注" rows={3} />
-            </Form.Item>
-          </Form>
-        </Modal>
-
-        {/* Included Scenes Modal */}
-        {currentCombination && (
-          <IncludedScenesModal
-            open={includedModalOpen}
-            onCancel={() => setIncludedModalOpen(false)}
-            combinationId={currentCombination.id}
-            combinationName={currentCombination.name}
-            // Need to get the latest included scenes from store, not just snapshot state
-            // because `currentCombination` might be stale if we only set it once.
-            // Better to find it from `scenes`
-            includedScenes={
-              scenes.find((s) => s.id === currentCombination.id)?.includedScenes || []
-            }
-          />
-        )}
+        <CreateCombinationSceneDrawer
+          open={isDrawerOpen}
+          onCancel={() => setIsDrawerOpen(false)}
+          onOk={handleDrawerOk}
+          initialValues={editingData}
+        />
 
         <ExecutionResultModal
           open={resultModalOpen}

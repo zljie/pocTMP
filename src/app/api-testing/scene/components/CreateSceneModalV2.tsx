@@ -39,6 +39,7 @@ interface CreateSceneModalV2Props {
   open: boolean;
   onCancel: () => void;
   onOk: (values: any) => void;
+  initialValues?: any;
 }
 
 const { Option } = Select;
@@ -49,6 +50,7 @@ export const CreateSceneModalV2: React.FC<CreateSceneModalV2Props> = ({
   open,
   onCancel,
   onOk,
+  initialValues,
 }) => {
   const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState('1');
@@ -73,10 +75,24 @@ export const CreateSceneModalV2: React.FC<CreateSceneModalV2Props> = ({
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
-      form.resetFields();
-      setSelectedInterfaceId(null);
+      if (initialValues) {
+        // Edit Mode
+        form.setFieldsValue(initialValues);
+        if (initialValues.interfaceId) {
+            setSelectedInterfaceId(initialValues.interfaceId);
+        }
+      } else {
+        // Create Mode
+        form.resetFields();
+        setSelectedInterfaceId(null);
+        form.setFieldsValue({
+            priority: 'P1',
+            method: 'POST',
+            retryCount: 0,
+        });
+      }
     }
-  }, [open, form]);
+  }, [open, initialValues, form]);
 
   const handleOk = async () => {
     try {
@@ -675,7 +691,7 @@ export const CreateSceneModalV2: React.FC<CreateSceneModalV2Props> = ({
 
   return (
     <Drawer
-      title="新增测试场景 (V2)"
+      title={initialValues ? "修改测试场景" : "新增测试场景"}
       width={900}
       onClose={onCancel}
       open={open}
