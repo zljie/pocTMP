@@ -41,7 +41,7 @@ interface ProductType {
 const initialData: ProductType[] = [
   {
     id: '1',
-    name: '昆仓数智',
+    name: 'KLTech',
     code: '',
     orderNum: 0,
     status: 'active',

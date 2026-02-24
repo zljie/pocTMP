@@ -67,7 +67,7 @@ type SearchValues = {
 const deptTreeData: DeptType[] = [
   {
     id: '1',
-    name: '昆仓数智',
+    name: 'KLTech',
     children: [
       {
         id: '2',

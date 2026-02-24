@@ -34,7 +34,7 @@ import messageStore, { MessageType } from '@/stores/messageStore';
 
 type AiScenario = {
   name: string;
-  category: 'normal' | 'boundary' | 'exception' | 'auth' | 'idempotency' | 'other';
+  category: 'normal' | 'boundary' | 'exception' | 'auth' | 'idempotency' | 'variable_variation' | 'other';
   requestExample?: string;
   assertions?: string[];
   notes?: string;
@@ -318,7 +318,7 @@ export default function InterfaceManagementPage() {
     }));
 
     const resp = await postJson<AiSceneGenResult>('/api/ai/interface-testing/scene-generation/', {
-      goal: '基于该接口生成测试场景建议清单（正常/边界/异常/鉴权/幂等）。',
+      goal: '基于该接口生成测试场景建议清单，包含：1. 正向测试用例；2. 逆向测试用例（异常/鉴权）；3. 参数差异化测试（边界值/特殊字符/组合）。',
       interfaceName: record.name_cn || record.name,
       method: record.method,
       path: record.path,
@@ -373,6 +373,16 @@ export default function InterfaceManagementPage() {
     }
 
     // Create scenes
+    const categoryMap: Record<string, string> = {
+        normal: '正向',
+        boundary: '边界',
+        exception: '逆向',
+        auth: '鉴权',
+        idempotency: '幂等',
+        variable_variation: '参数变异',
+        other: '其他',
+    };
+
     selectedScenarios.forEach(scenario => {
         sceneStore.createScene({
             name: scenario.name,
@@ -387,7 +397,7 @@ export default function InterfaceManagementPage() {
             projectName: aiInterface.projectName,
             environmentIds: [],
             requestPath: aiInterface.path,
-            remark: `AI生成 (${scenario.category}): ${scenario.notes || ''}`,
+            remark: `AI生成 (${categoryMap[scenario.category] || scenario.category}): ${scenario.notes || ''}`,
             returnExample: scenario.requestExample,
         });
     });
@@ -1424,7 +1434,24 @@ export default function InterfaceManagementPage() {
                 }}
                 columns={[
                   { title: '场景名称', dataIndex: 'name', width: 240, ellipsis: true },
-                  { title: '类别', dataIndex: 'category', width: 120 },
+                  {
+                    title: '类别',
+                    dataIndex: 'category',
+                    width: 120,
+                    render: (val: string) => {
+                        const map: Record<string, any> = {
+                            normal: { text: '正向测试', color: 'green' },
+                            boundary: { text: '边界测试', color: 'orange' },
+                            exception: { text: '逆向测试', color: 'red' },
+                            auth: { text: '鉴权测试', color: 'magenta' },
+                            idempotency: { text: '幂等测试', color: 'cyan' },
+                            variable_variation: { text: '参数变异', color: 'purple' },
+                            other: { text: '其他', color: 'default' },
+                        };
+                        const item = map[val] || map.other;
+                        return <Tag color={item.color}>{item.text}</Tag>;
+                    }
+                  },
                   { title: '请求示例', dataIndex: 'requestExample', ellipsis: true },
                   {
                     title: '断言建议',

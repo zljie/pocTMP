@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Badge, Breadcrumb, Input, Layout, Menu, Space, Spin, message } from 'antd';
+import { Avatar, Badge, Breadcrumb, Input, Layout, Menu, Select, Space, Spin, message } from 'antd';
 import {
   HomeOutlined,
   FileTextOutlined,
@@ -30,9 +30,11 @@ import {
   ClusterOutlined,
   FolderOutlined,
   DatabaseOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import TagsView from './TagsView';
+import { useTenantStore, TenantType } from '@/stores/tenantStore';
 
 const { Sider, Header, Content } = Layout;
 
@@ -119,6 +121,8 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
   const pendingPathRef = useRef<string | null>(null);
   const firstTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const secondTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { tenants, currentTenant, setCurrentTenant } = useTenantStore();
 
   useEffect(() => {
     document.title = `${title} - 智能测试平台`;
@@ -350,11 +354,21 @@ export default function MainLayout({ children, title }: MainLayoutProps) {
             <Breadcrumb items={getBreadcrumbItems()} />
           </div>
           <Space size="large">
-            <Input 
-               placeholder="选择租户" 
-               suffix={<SearchOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
-               style={{ width: 200, borderRadius: 4 }}
-               variant="borderless"
+            <Select
+              placeholder="选择租户"
+              suffixIcon={<DownOutlined style={{ color: 'rgba(0,0,0,.45)' }} />}
+              style={{ width: 200, borderRadius: 4 }}
+              variant="borderless"
+              showSearch
+              value={currentTenant?.id}
+              onChange={(value) => {
+                const tenant = tenants.find((t) => t.id === value);
+                setCurrentTenant(tenant || null);
+              }}
+              options={tenants.map((t: TenantType) => ({ label: t.companyName, value: t.id }))}
+              filterOption={(input, option) =>
+                (String(option?.label ?? '')).toLowerCase().includes(input.toLowerCase())
+              }
             />
             <SearchOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
             <ExpandOutlined style={{ fontSize: 18, cursor: 'pointer' }} />

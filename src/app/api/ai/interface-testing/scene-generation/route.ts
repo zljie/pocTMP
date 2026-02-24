@@ -7,7 +7,7 @@ import { extractFirstJsonObject, safeJsonParse, truncateUtf8 } from '@/lib/ai/te
 
 type Scenario = {
   name: string;
-  category: 'normal' | 'boundary' | 'exception' | 'auth' | 'idempotency' | 'other';
+  category: 'normal' | 'boundary' | 'exception' | 'auth' | 'idempotency' | 'variable_variation' | 'other';
   requestExample?: string;
   assertions?: string[];
   notes?: string;
@@ -41,6 +41,7 @@ const normalizeScenario = (v: unknown): Scenario | null => {
     categoryRaw === 'exception' ||
     categoryRaw === 'auth' ||
     categoryRaw === 'idempotency' ||
+    categoryRaw === 'variable_variation' ||
     categoryRaw === 'other'
       ? categoryRaw
       : 'other';
@@ -86,8 +87,14 @@ export async function POST(req: Request) {
   const system = [
     '你是智能测试平台的接口测试场景生成助手。',
     '请严格以 JSON 输出，不要输出任何额外文本。',
-    '输出 schema：{ summary: string, scenarios: Array<{ name: string, category: \"normal\"|\"boundary\"|\"exception\"|\"auth\"|\"idempotency\"|\"other\", requestExample?: string, assertions?: string[], notes?: string }>, importHints?: string[] }',
-    'scenarios 需要覆盖正常/边界/异常/鉴权/幂等等典型维度，assertions 给出建议验证点，requestExample 给出简洁示例（JSON 或 key=value）。',
+    '输出 schema：{ summary: string, scenarios: Array<{ name: string, category: \"normal\"|\"boundary\"|\"exception\"|\"auth\"|\"idempotency\"|\"variable_variation\"|\"other\", requestExample?: string, assertions?: string[], notes?: string }>, importHints?: string[] }',
+    'scenarios 需要覆盖以下维度：',
+    '1. 正向测试用例 (normal)：符合预期的正常业务流程。',
+    '2. 逆向测试用例 (exception/auth)：异常输入、权限不足、缺失必填项等。',
+    '3. 参数差异化测试 (variable_variation)：基于参数定义（类型、边界、枚举），生成多种有效和无效的输入组合（如最大长度、特殊字符、边界值）。',
+    '4. 边界测试 (boundary)：参数边界值测试。',
+    '5. 幂等性测试 (idempotency)：重复请求测试。',
+    'assertions 给出建议验证点，requestExample 给出简洁示例（JSON 或 key=value）。',
   ].join('\n');
 
   const user = [

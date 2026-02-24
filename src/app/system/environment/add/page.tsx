@@ -6,6 +6,7 @@ import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import apiTestEnvironmentStore from '@/stores/apiTestEnvironmentStore';
+import { useTenantStore } from '@/stores/tenantStore';
 
 type FormValues = {
   projectId: string;
@@ -19,26 +20,25 @@ type FormValues = {
   status: 'active' | 'inactive';
 };
 
-const projects = [
-  { id: 'p1', name: '示例项目A' },
-  { id: 'p2', name: '示例项目B' },
-  { id: 'p3', name: '示例项目C' },
-];
-
+    
 const protocolOptions = ['HTTP', 'HTTPS', 'WS', 'WSS', 'TCP'].map((value) => ({ value, label: value }));
 
 export default function SystemEnvironmentAddPage() {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const [loading, setLoading] = useState(false);
+  const { currentTenant } = useTenantStore();
 
-  const projectOptions = useMemo(() => projects.map((p) => ({ value: p.id, label: p.name })), []);
+  React.useEffect(() => {
+    if (currentTenant) {
+      form.setFieldsValue({ projectId: currentTenant.id });
+    }
+  }, [currentTenant, form]);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
-    const project = projects.find((p) => p.id === values.projectId);
-    if (!project) {
-      message.error('所属项目无效');
+    if (!currentTenant) {
+      message.error('未选择所属项目（租户）');
       return;
     }
 
@@ -46,7 +46,8 @@ export default function SystemEnvironmentAddPage() {
     setTimeout(() => {
       apiTestEnvironmentStore.create({
         ...values,
-        projectName: project.name,
+        projectId: currentTenant.id,
+        projectName: currentTenant.companyName,
       });
       setLoading(false);
       message.success('新增成功');
@@ -72,10 +73,19 @@ export default function SystemEnvironmentAddPage() {
             layout="horizontal"
             labelCol={{ span: 6 }}
             wrapperCol={{ span: 14 }}
-            initialValues={{ status: 'active', isProxy: false, protocols: ['HTTP'] }}
+            initialValues={{
+              status: 'active',
+              isProxy: false,
+              protocols: ['HTTP'],
+              projectId: currentTenant?.id, // 设置默认值
+            }}
           >
             <Form.Item name="projectId" label="所属项目" rules={[{ required: true, message: '请选择所属项目' }]}>
-              <Select placeholder="请选择所属项目" options={projectOptions} />
+              <Select
+                placeholder="请选择所属项目"
+                options={currentTenant ? [{ value: currentTenant.id, label: currentTenant.companyName }] : []}
+                disabled
+              />
             </Form.Item>
             <Form.Item name="systemId" label="系统ID" rules={[{ required: true, message: '请输入系统ID' }]}>
               <Input placeholder="请输入系统ID" allowClear />

@@ -28,35 +28,12 @@ import {
   SyncOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
-
-type TenantStatus = 'active' | 'inactive';
+import { useTenantStore, TenantType, TenantStatus } from '@/stores/tenantStore';
 
 type TenantPackageOption = {
   id: string;
   name: string;
 };
-
-interface TenantType {
-  id: string;
-  tenantCode: string;
-  contactName: string;
-  contactPhone: string;
-  companyName: string;
-  creditCode?: string;
-  expireTime?: string;
-  status: TenantStatus;
-  packageId?: string;
-  userCount?: number;
-  bindDomain?: string;
-  companyAddress?: string;
-  companyCode?: string;
-  companyIntro?: string;
-  remark?: string;
-  adminUserName?: string;
-  createTime: string;
-  updatedTime: string;
-  updatedBy: string;
-}
 
 type SearchValues = {
   tenantCode?: string;
@@ -87,30 +64,6 @@ const tenantPackageOptions: TenantPackageOption[] = [
   { id: 'pkg_1', name: '基础版' },
   { id: 'pkg_2', name: '标准版' },
   { id: 'pkg_3', name: '企业版' },
-];
-
-const initialTenants: TenantType[] = [
-  {
-    id: '1',
-    tenantCode: '000000',
-    contactName: '管理组',
-    contactPhone: '15888888888',
-    companyName: '昆仓数智',
-    creditCode: '',
-    expireTime: '',
-    status: 'active',
-    packageId: 'pkg_2',
-    userCount: 0,
-    bindDomain: '',
-    companyAddress: '',
-    companyCode: '',
-    companyIntro: '',
-    remark: '',
-    adminUserName: 'admin',
-    createTime: '2025-08-18 09:57:50',
-    updatedTime: '2025-08-18 09:57:50',
-    updatedBy: '管理员',
-  },
 ];
 
 const nowText = () => dayjs().format('YYYY-MM-DD HH:mm:ss');
@@ -148,7 +101,7 @@ export default function TenantManagementPage() {
   const [searchForm] = Form.useForm<SearchValues>();
 
   const [loading, setLoading] = useState(false);
-  const [allData, setAllData] = useState<TenantType[]>(initialTenants);
+  const { tenants: allData, addTenant, updateTenant, deleteTenants } = useTenantStore();
   const [searchValues, setSearchValues] = useState<SearchValues>({});
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -224,7 +177,7 @@ export default function TenantManagementPage() {
 
   const handleDeleteIds = (ids: string[]) => {
     if (!ids.length) return;
-    setAllData((prev) => prev.filter((row) => !ids.includes(row.id)));
+    deleteTenants(ids);
     setSelectedRowKeys((prev) => prev.filter((key) => !ids.includes(String(key))));
     message.success('删除成功（模拟）');
   };
@@ -251,16 +204,12 @@ export default function TenantManagementPage() {
     message.success('导出成功（模拟）');
   };
 
-  const updateTenantById = (id: string, updater: (prev: TenantType) => TenantType) => {
-    setAllData((prev) => prev.map((row) => (row.id === id ? updater(row) : row)));
-  };
-
   const handleSyncTenant = async (record?: TenantType) => {
     setSyncing(true);
     try {
       await new Promise((r) => setTimeout(r, 600));
       if (record) {
-        updateTenantById(record.id, (prev) => ({
+        updateTenant(record.id, (prev) => ({
           ...prev,
           updatedTime: nowText(),
           updatedBy: '管理员',
@@ -280,30 +229,25 @@ export default function TenantManagementPage() {
       const updatedBy = '管理员';
 
       if (editingId) {
-        setAllData((prev) =>
-          prev.map((row) => {
-            if (row.id !== editingId) return row;
-            return {
-              ...row,
-              companyName: values.companyName,
-              contactName: values.contactName,
-              contactPhone: values.contactPhone,
-              adminUserName: values.adminUserName,
-              packageId: values.packageId,
-              expireTime: values.expireTime ? values.expireTime.format('YYYY-MM-DD') : '',
-              userCount: values.userCount ?? 0,
-              bindDomain: values.bindDomain ?? '',
-              companyAddress: values.companyAddress ?? '',
-              companyCode: values.companyCode ?? '',
-              creditCode: values.creditCode ?? '',
-              companyIntro: values.companyIntro ?? '',
-              remark: values.remark ?? '',
-              status: values.status ?? 'active',
-              updatedTime,
-              updatedBy,
-            };
-          })
-        );
+        updateTenant(editingId, (prev) => ({
+          ...prev,
+          companyName: values.companyName,
+          contactName: values.contactName,
+          contactPhone: values.contactPhone,
+          adminUserName: values.adminUserName,
+          packageId: values.packageId,
+          expireTime: values.expireTime ? values.expireTime.format('YYYY-MM-DD') : '',
+          userCount: values.userCount ?? 0,
+          bindDomain: values.bindDomain ?? '',
+          companyAddress: values.companyAddress ?? '',
+          companyCode: values.companyCode ?? '',
+          creditCode: values.creditCode ?? '',
+          companyIntro: values.companyIntro ?? '',
+          remark: values.remark ?? '',
+          status: values.status ?? 'active',
+          updatedTime,
+          updatedBy,
+        }));
       } else {
         const id = getNextId(allData);
         const tenantCode = String(1000000 + Number(id)).slice(-6);
@@ -329,7 +273,7 @@ export default function TenantManagementPage() {
           updatedTime,
           updatedBy,
         };
-        setAllData((prev) => [newRow, ...prev]);
+        addTenant(newRow);
       }
 
       setLoading(false);
@@ -357,7 +301,7 @@ export default function TenantManagementPage() {
           checkedChildren="启用"
           unCheckedChildren="停用"
           onChange={(checked) => {
-            updateTenantById(record.id, (prev) => ({
+            updateTenant(record.id, (prev) => ({
               ...prev,
               status: checked ? 'active' : 'inactive',
               updatedTime: nowText(),

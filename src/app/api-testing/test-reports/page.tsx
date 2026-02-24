@@ -12,13 +12,10 @@ import {
   Form,
   message,
   Popconfirm,
-  Alert,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import { AiResultView } from '@/components/ai/AiResultView';
-import { analyzeReport } from '@/lib/ai/client';
-import type { AiResult } from '@/lib/ai/types';
 
 // 测试报告类型定义
 interface TestReportType {
@@ -36,18 +33,6 @@ interface TestReportType {
   tester: string; // 测试人员
   projectName: string; // 所属项目
   remark: string; // 备注
-}
-
-// 报告详情类型定义
-interface ReportDetailType {
-  id: string;
-  reportId: string;
-  name: string; // 接口/组合场景
-  statusCode: string; // 状态码 (screenshot shows "false", maybe boolean or string)
-  duration: number; // 耗时
-  testTime: string; // 测试时间
-  remark: string; // 备注
-  result: 'Success' | 'Failure' | 'Exception' | 'Skip'; // 结果
 }
 
 // 模拟测试报告数据
@@ -166,66 +151,13 @@ const initialReports: TestReportType[] = [
   },
 ];
 
-// 模拟详情数据
-const initialDetails: ReportDetailType[] = [
-  {
-    id: '1',
-    reportId: '214',
-    name: 'testlogin_测试登录_正常场景',
-    statusCode: 'false',
-    duration: 0,
-    testTime: '2023-02-24 10:39:54',
-    remark: '发送请求出错...',
-    result: 'Exception',
-  },
-  {
-    id: '2',
-    reportId: '214',
-    name: 'test_create_创建_正常场景',
-    statusCode: 'false',
-    duration: 0,
-    testTime: '2023-02-24 10:39:54',
-    remark: '发送请求出错...',
-    result: 'Exception',
-  },
-  {
-    id: '3',
-    reportId: '214',
-    name: 'test_create_创建_正常场景',
-    statusCode: 'false',
-    duration: 0,
-    testTime: '2023-02-24 10:39:54',
-    remark: '组合场景名[测试]...',
-    result: 'Exception',
-  },
-  {
-    id: '4',
-    reportId: '214',
-    name: 'test_login_登录_正常场景',
-    statusCode: 'false',
-    duration: 0,
-    testTime: '2023-02-24 10:39:55',
-    remark: '组合场景名[测试]...',
-    result: 'Exception',
-  },
-];
-
 export default function TestReportManagementPage() {
+  const router = useRouter();
   const [searchForm] = Form.useForm();
   
   const [data, setData] = useState<TestReportType[]>(initialReports);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   
-  // 详情弹窗状态
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [currentReport, setCurrentReport] = useState<TestReportType | null>(null);
-  const [currentDetails, setCurrentDetails] = useState<ReportDetailType[]>([]);
-
-  const [aiModalVisible, setAiModalVisible] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiResult, setAiResult] = useState<AiResult | null>(null);
-
   // 搜索处理
   const handleSearch = () => {
     const values = searchForm.getFieldsValue();
@@ -267,107 +199,10 @@ export default function TestReportManagementPage() {
     });
   };
 
-  // 打开详情
-  const openDetailModal = (record: TestReportType) => {
-    setCurrentReport(record);
-    // 这里简单使用模拟数据，实际应根据reportId筛选
-    // 为了演示效果，我们总是显示 initialDetails
-    setCurrentDetails(initialDetails); 
-    setDetailModalVisible(true);
+  // 跳转到详情页
+  const goToDetail = (record: TestReportType) => {
+    router.push(`/api-testing/test-reports/${record.id}`);
   };
-
-  const openAiModal = async () => {
-    if (!currentReport) return;
-    setAiModalVisible(true);
-    setAiError(null);
-    setAiResult(null);
-    setAiLoading(true);
-
-    const payload = {
-      report: currentReport,
-      details: currentDetails,
-    };
-
-    const resp = await analyzeReport({
-      title: `${currentReport.testSetName}-测试报告`,
-      context: '输出管理摘要、研发摘要、Top失败原因、风险项与改进建议，并附可复制的 Markdown。',
-      data: payload,
-    });
-
-    setAiLoading(false);
-    if ('error' in resp) {
-      setAiError(resp.error.message);
-      return;
-    }
-    setAiResult(resp.result);
-  };
-
-  // 详情列定义
-  const detailColumns: ColumnsType<ReportDetailType> = [
-    {
-      title: '序号',
-      dataIndex: 'id',
-      key: 'id',
-      width: 60,
-      render: (_, __, index) => index + 1,
-    },
-    {
-      title: '接口/组合场景',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      ellipsis: true,
-    },
-    {
-      title: '状态码',
-      dataIndex: 'statusCode',
-      key: 'statusCode',
-      width: 80,
-    },
-    {
-      title: '耗时',
-      dataIndex: 'duration',
-      key: 'duration',
-      width: 80,
-    },
-    {
-      title: '测试时间',
-      dataIndex: 'testTime',
-      key: 'testTime',
-      width: 160,
-    },
-    {
-      title: '备注',
-      dataIndex: 'remark',
-      key: 'remark',
-      ellipsis: true,
-    },
-    {
-      title: '结果',
-      dataIndex: 'result',
-      key: 'result',
-      width: 100,
-      render: (result) => {
-        let color = 'default';
-        let text = result;
-        if (result === 'Success') { color = 'green'; text = '成功'; }
-        if (result === 'Failure') { color = 'red'; text = '失败'; }
-        if (result === 'Exception') { color = 'orange'; text = '异常结束'; }
-        if (result === 'Skip') { color = 'gold'; text = '跳过'; }
-        return <Tag color={color} bordered={true} style={{ background: '#fff' }}>{text}</Tag>;
-      }
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 80,
-      render: () => (
-        <Button type="link" size="small" style={{ padding: 0 }}>
-          删除
-        </Button>
-      ),
-    },
-  ];
 
   // 主表格列定义
   const columns: ColumnsType<TestReportType> = [
@@ -392,7 +227,7 @@ export default function TestReportManagementPage() {
       width: 100,
       align: 'center',
       render: (count, record) => (
-        <Tag color="blue" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => openDetailModal(record)}>
+        <Tag color="blue" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => goToDetail(record)}>
           {count}
         </Tag>
       ),
@@ -404,7 +239,7 @@ export default function TestReportManagementPage() {
       width: 80,
       align: 'center',
       render: (count, record) => (
-        <Tag color="green" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => openDetailModal(record)}>
+        <Tag color="green" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => goToDetail(record)}>
           {count}
         </Tag>
       ),
@@ -416,7 +251,7 @@ export default function TestReportManagementPage() {
       width: 80,
       align: 'center',
       render: (count, record) => (
-        <Tag color="red" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => openDetailModal(record)}>
+        <Tag color="red" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => goToDetail(record)}>
           {count}
         </Tag>
       ),
@@ -428,7 +263,7 @@ export default function TestReportManagementPage() {
       width: 80,
       align: 'center',
       render: (count, record) => (
-        <Tag color="orange" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => openDetailModal(record)}>
+        <Tag color="orange" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => goToDetail(record)}>
           {count}
         </Tag>
       ),
@@ -440,7 +275,7 @@ export default function TestReportManagementPage() {
       width: 80,
       align: 'center',
       render: (count, record) => (
-        <Tag color="gold" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => openDetailModal(record)}>
+        <Tag color="gold" style={{ cursor: 'pointer', width: '100%', textAlign: 'center' }} onClick={() => goToDetail(record)}>
           {count}
         </Tag>
       ),
@@ -551,48 +386,6 @@ export default function TestReportManagementPage() {
             size="middle"
           />
         </Card>
-
-        {/* 详情弹窗 */}
-        <Modal
-          title={`${currentReport?.testSetName || ''}的测试报告`}
-          open={detailModalVisible}
-          onCancel={() => {
-            setDetailModalVisible(false);
-            setAiModalVisible(false);
-          }}
-          footer={null}
-          width={1000}
-        >
-          <div style={{ marginBottom: 12 }}>
-            <Space>
-              <Button type="primary" onClick={openAiModal} disabled={!currentReport}>
-                AI 分析/生成报告
-              </Button>
-            </Space>
-          </div>
-          <Table
-            columns={detailColumns}
-            dataSource={currentDetails}
-            rowKey="id"
-            pagination={{
-              defaultPageSize: 10,
-              showTotal: (total) => `共 ${total} 条`,
-            }}
-            size="middle"
-          />
-        </Modal>
-
-        <Modal
-          title="AI 报告分析"
-          open={aiModalVisible}
-          onCancel={() => setAiModalVisible(false)}
-          footer={null}
-          width={1000}
-        >
-          {aiLoading ? <Alert type="info" message="AI 正在生成，请稍候..." showIcon /> : null}
-          {aiError ? <Alert type="error" message={aiError} showIcon style={{ marginTop: 12 }} /> : null}
-          {aiResult ? <AiResultView result={aiResult} /> : null}
-        </Modal>
       </div>
     </MainLayout>
   );

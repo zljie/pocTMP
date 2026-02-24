@@ -67,7 +67,7 @@ interface UserType {
 const deptTree: DeptNode[] = [
   {
     id: '1',
-    name: '昆仓数智',
+    name: 'KLTech',
     children: [
       { id: '2', name: '昆仓ERP3.0产品' },
       { id: '3', name: '研发中心' },
@@ -82,7 +82,7 @@ const initialUsers: UserType[] = [
     userName: 'admin',
     nickName: '系统管理员',
     deptId: '1',
-    deptName: '昆仓数智',
+    deptName: 'KLTech',
     phoneNumber: '15888888888',
     email: 'admin@example.com',
     sex: 'unknown',

@@ -19,12 +19,6 @@ type FormValues = {
   status: 'active' | 'inactive';
 };
 
-const projects = [
-  { id: 'p1', name: '示例项目A' },
-  { id: 'p2', name: '示例项目B' },
-  { id: 'p3', name: '示例项目C' },
-];
-
 const protocolOptions = ['HTTP', 'HTTPS', 'WS', 'WSS', 'TCP'].map((value) => ({ value, label: value }));
 
 export default function SystemEnvironmentDetailPage() {
@@ -43,8 +37,6 @@ export default function SystemEnvironmentDetailPage() {
   );
   const record: ApiTestEnvironment | undefined = useMemo(() => allData.find((item) => item.id === id), [allData, id]);
 
-  const projectOptions = useMemo(() => projects.map((p) => ({ value: p.id, label: p.name })), []);
-
   useEffect(() => {
     if (!record) return;
     form.setFieldsValue({
@@ -62,9 +54,8 @@ export default function SystemEnvironmentDetailPage() {
 
   const handleSave = async () => {
     const values = await form.validateFields();
-    const project = projects.find((p) => p.id === values.projectId);
-    if (!project) {
-      message.error('所属项目无效');
+    if (!record) {
+      message.error('记录不存在');
       return;
     }
 
@@ -72,7 +63,7 @@ export default function SystemEnvironmentDetailPage() {
     setTimeout(() => {
       const updated = apiTestEnvironmentStore.update(id, {
         ...values,
-        projectName: project.name,
+        projectName: record.projectName,
       });
       setSaving(false);
       if (!updated) {
@@ -125,7 +116,11 @@ export default function SystemEnvironmentDetailPage() {
 
               <Form form={form} layout="horizontal" labelCol={{ span: 6 }} wrapperCol={{ span: 14 }}>
                 <Form.Item name="projectId" label="所属项目" rules={[{ required: true, message: '请选择所属项目' }]}>
-                  <Select placeholder="请选择所属项目" options={projectOptions} disabled={!editing} />
+                  <Select
+                    placeholder="请选择所属项目"
+                    options={[{ value: record.projectId, label: record.projectName }]}
+                    disabled
+                  />
                 </Form.Item>
                 <Form.Item name="systemId" label="系统ID" rules={[{ required: true, message: '请输入系统ID' }]}>
                   <Input placeholder="请输入系统ID" allowClear disabled={!editing} />
