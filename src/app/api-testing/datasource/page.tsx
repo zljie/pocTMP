@@ -299,9 +299,6 @@ export default function DataSourceConfigurationPage() {
       align: 'center',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" style={{ padding: 0 }} onClick={() => openAiCheck(record)}>
-            AI自检
-          </Button>
           <Button
             type="link"
             size="small"
@@ -355,7 +352,7 @@ export default function DataSourceConfigurationPage() {
               <Button danger onClick={handleBatchDelete}>
                 批量删除
               </Button>
-              <Button onClick={openSqlHelper}>AI SQL建议</Button>
+              {/* <Button onClick={openSqlHelper}>AI SQL建议</Button> */}
             </Space>
           </div>
           <Table
@@ -457,7 +454,7 @@ export default function DataSourceConfigurationPage() {
           ) : null}
         </Modal>
 
-        <Modal
+        {/* <Modal
           title="AI SQL建议"
           open={sqlOpen}
           onCancel={() => setSqlOpen(false)}
@@ -479,7 +476,7 @@ export default function DataSourceConfigurationPage() {
               {sqlResult}
             </pre>
           ) : null}
-        </Modal>
+        </Modal> */}
       </div>
     </MainLayout>
   );

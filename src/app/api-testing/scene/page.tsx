@@ -1156,9 +1156,6 @@ export default function SceneManagementPage() {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={() => openAiSuggestion(record)}>
-            AI建议
-          </Button>
           <Button 
             type="link" 
             size="small" 
@@ -1201,7 +1198,6 @@ export default function SceneManagementPage() {
           <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
             <Space>
               <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增</Button>
-              <Button onClick={() => router.push('/api-testing/ai/scene-generator')}>AI 场景生成</Button>
               <Button onClick={() => message.info('导出功能暂未实现')}>导出</Button>
               <Button danger onClick={handleBatchDelete}>批量删除</Button>
             </Space>

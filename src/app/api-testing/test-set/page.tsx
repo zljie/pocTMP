@@ -347,6 +347,14 @@ export default function TestSetManagementPage() {
   const [aiResult, setAiResult] = useState<AiResult | null>(null);
   const [diagnosisText, setDiagnosisText] = useState('');
 
+  // 项目分类相关状态
+  const [projectCategories, setProjectCategories] = useState<{ label: string; value: string }[]>([
+    { label: '某APP客户端项目', value: '1' },
+    { label: '测试项目', value: '2' },
+  ]);
+  const [addCategoryModalOpen, setAddCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
   // ----------------- 列定义 -----------------
 
   const columns: ColumnsType<TestSetType> = [
@@ -393,7 +401,7 @@ export default function TestSetManagementPage() {
       ),
     },
     {
-      title: '所属项目',
+      title: '项目分类',
       dataIndex: 'projectName',
       key: 'projectName',
     },
@@ -572,6 +580,27 @@ export default function TestSetManagementPage() {
     },
   ];
 
+  // ----------------- 项目分类相关 -----------------
+
+  const handleAddCategory = () => {
+    setNewCategoryName('');
+    setAddCategoryModalOpen(true);
+  };
+
+  const handleCategoryOk = () => {
+    if (!newCategoryName.trim()) {
+      message.error('请输入分类名称');
+      return;
+    }
+    const newCategory = {
+      label: newCategoryName,
+      value: String(Date.now()),
+    };
+    setProjectCategories([...projectCategories, newCategory]);
+    setAddCategoryModalOpen(false);
+    message.success('添加成功');
+  };
+
   // ----------------- 处理函数 -----------------
 
   // 主页面查询
@@ -636,13 +665,17 @@ export default function TestSetManagementPage() {
 
   const handleModalOk = () => {
     form.validateFields().then(values => {
+      // 获取项目名称
+      const selectedProject = projectCategories.find(c => c.value === values.projectId);
+      const projectName = selectedProject ? selectedProject.label : '';
+
       if (editingId) {
         const newData = data.map(item => {
           if (item.id === editingId) {
             return {
               ...item,
               ...values,
-              projectName: values.projectId === '1' ? '某APP客户端项目' : '测试项目',
+              projectName,
             };
           }
           return item;
@@ -655,7 +688,7 @@ export default function TestSetManagementPage() {
           ...values,
           scenarioCount: 0,
           combinedScenarioCount: 0,
-          projectName: values.projectId === '1' ? '某APP客户端项目' : '测试项目',
+          projectName,
           createdBy: '当前用户',
         };
         setData([...data, newItem]);
@@ -938,13 +971,42 @@ export default function TestSetManagementPage() {
           <Form.Item name="remark" label="备注">
             <Input placeholder="备注" />
           </Form.Item>
-          <Form.Item name="projectId" label="所属项目" rules={[{ required: true }]}>
-            <Select placeholder="点击选择项目">
-              <Select.Option value="1">某APP客户端项目</Select.Option>
-              <Select.Option value="2">测试项目</Select.Option>
-            </Select>
+          <Form.Item label="项目分类" required>
+            <Space style={{ display: 'flex' }} align="baseline">
+               <Form.Item
+                 name="projectId"
+                 noStyle
+                 rules={[{ required: true, message: '请选择项目分类' }]}
+               >
+                 <Select placeholder="点击选择分类" style={{ width: 280 }}>
+                   {projectCategories.map(c => (
+                     <Select.Option key={c.value} value={c.value}>{c.label}</Select.Option>
+                   ))}
+                 </Select>
+               </Form.Item>
+               <Button type="link" icon={<PlusOutlined />} onClick={handleAddCategory}>
+                 新增
+               </Button>
+            </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 新增项目分类弹窗 */}
+      <Modal
+        title="新增项目分类"
+        open={addCategoryModalOpen}
+        onOk={handleCategoryOk}
+        onCancel={() => setAddCategoryModalOpen(false)}
+        width={400}
+      >
+        <div style={{ padding: '20px 0' }}>
+          <Input 
+            placeholder="请输入分类名称" 
+            value={newCategoryName} 
+            onChange={(e) => setNewCategoryName(e.target.value)} 
+          />
+        </div>
       </Modal>
 
       {/* 场景列表弹窗 */}
