@@ -44,3 +44,22 @@ next-env.d.ts
 
 # docs
 docs/
+debug_doc.py
+update_doc_v2.py
+update_doc.py
+.trae/documents/plan_20260224_022812.md
+.trae/documents/plan_20260224_031106.md
+.trae/documents/plan_20260224_032132.md
+.trae/documents/thought_structure_case_study.md
+.trae/skills/thought-structure-cskill/SKILL.md
+.trae/specs/create-product-design-skill/checklist.md
+.trae/specs/create-product-design-skill/spec.md
+.trae/specs/create-product-design-skill/tasks.md
+product-design-cskill/SKILL.md
+product-design-cskill/.claude-plugin/marketplace.json
+thought-structure-cskill/README.md
+thought-structure-cskill/SKILL.md
+thought-structure-cskill/.claude-plugin/marketplace.json
+thought-structure-cskill/scripts/analyze_structure.py
+thought-structure-cskill/scripts/optimize_content.py
+thought-structure-cskill/scripts/outline_generator.py

@@ -17,6 +17,7 @@ import {
   Row,
   Col,
   Divider,
+  Input,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -25,6 +26,7 @@ import {
   LeftOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
@@ -69,6 +71,16 @@ export default function AiSceneGeneratorPage() {
   // States
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedInterfaceIds, setSelectedInterfaceIds] = useState<React.Key[]>([]);
+  const [searchText, setSearchText] = useState('');
+
+  const filteredInterfaces = useMemo(() => {
+    if (!searchText) return interfaces;
+    return interfaces.filter(i => 
+      (i.name_cn || '').includes(searchText) || 
+      (i.name || '').includes(searchText) || 
+      (i.path || '').includes(searchText)
+    );
+  }, [interfaces, searchText]);
   
   const [options, setOptions] = useState<GenerationCategory[]>(['normal', 'exception', 'auth', 'boundary']);
   
